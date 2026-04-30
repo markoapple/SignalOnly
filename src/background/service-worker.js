@@ -429,14 +429,16 @@ async function regenerateProfile(profileId) {
   }
 
   const old = settings.profiles[index];
+  const regenerated = createRandomProfile({
+    name: old.name,
+    code: old.code,
+    accent: old.accent,
+    modules: old.modules
+  });
   settings.profiles[index] = {
-    ...createRandomProfile({
-      name: old.name,
-      code: old.code,
-      accent: old.accent,
-      modules: old.modules
-    }),
+    ...regenerated,
     id: old.id,
+    cookiePolicy: old.cookiePolicy || regenerated.cookiePolicy,
     createdAt: old.createdAt,
     updatedAt: Date.now()
   };
@@ -769,7 +771,7 @@ function normalizeSiteAssignments(assignments) {
 
 function createRandomProfile({ name = "Profile", code = "PR-00", accent = "#ff006e", modules } = {}) {
   const seedHex = randomHex(32);
-  const rng = mulberry32(hashString(seedHex));
+  const rng = rngFor(seedHex, "fingerprint");
   const preset = pick(USER_AGENT_PRESETS, rng);
   const [width, height] = pick(preset.sizes, rng);
   const [webglVendor, webglRenderer] = pick(preset.webgl, rng);
@@ -793,7 +795,7 @@ function createRandomProfile({ name = "Profile", code = "PR-00", accent = "#ff00
     },
     cookiePolicy: "keep",
     randomization: {
-      profileId: `PRF-${randomHex(4).toUpperCase()}`,
+      profileId: `PRF-${deriveHex(seedHex, "profile-id", 4).toUpperCase()}`,
       seedHex,
       model: preset.label,
       userAgent: `Mozilla/5.0 (${preset.uaPlatform}) AppleWebKit/537.36 (KHTML, like Gecko) ${chromePart} Safari/537.36`,
@@ -819,15 +821,15 @@ function createRandomProfile({ name = "Profile", code = "PR-00", accent = "#ff00
       maxTouchPoints: pick(preset.touch, rng),
       webglVendor,
       webglRenderer,
-      canvasNoiseSeed: randomHex(16),
-      audioNoiseSeed: randomHex(16),
-      behaviorJitterSeed: randomHex(16),
-      trackerRuleSalt: randomHex(16),
+      canvasNoiseSeed: deriveHex(seedHex, "canvas-noise", 16),
+      audioNoiseSeed: deriveHex(seedHex, "audio-noise", 16),
+      behaviorJitterSeed: deriveHex(seedHex, "behavior-jitter", 16),
+      trackerRuleSalt: deriveHex(seedHex, "tracker-rule", 16),
       salts: {
-        storage: randomHex(16),
-        indexedDB: randomHex(16),
-        cache: randomHex(16),
-        broadcastChannel: randomHex(16)
+        storage: deriveHex(seedHex, "storage-salt", 16),
+        indexedDB: deriveHex(seedHex, "indexeddb-salt", 16),
+        cache: deriveHex(seedHex, "cache-salt", 16),
+        broadcastChannel: deriveHex(seedHex, "broadcastchannel-salt", 16)
       }
     },
     createdAt: Date.now(),
@@ -1273,24 +1275,55 @@ function createProfileId() {
   return `profile-${randomHex(8)}`;
 }
 
+function deriveHex(seedHex, label, bytes) {
+  const rng = rngFor(seedHex, label);
+  let output = "";
+  for (let index = 0; index < bytes; index += 1) {
+    output += Math.floor(rng() * 256).toString(16).padStart(2, "0");
+  }
+  return output;
+}
+
+function rngFor(seedHex, label) {
+  const [a, b, c, d] = cyrb128(`${seedHex}:${label}`);
+  return sfc32(a, b, c, d);
+}
+
 function pick(values, rng) {
   return values[Math.floor(rng() * values.length)];
 }
 
-function hashString(input) {
-  let hash = 2166136261;
+function cyrb128(input) {
+  let h1 = 1779033703;
+  let h2 = 3144134277;
+  let h3 = 1013904242;
+  let h4 = 2773480762;
   for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
+    const code = input.charCodeAt(index);
+    h1 = h2 ^ Math.imul(h1 ^ code, 597399067);
+    h2 = h3 ^ Math.imul(h2 ^ code, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ code, 951274213);
+    h4 = h1 ^ Math.imul(h4 ^ code, 2716044179);
   }
-  return hash >>> 0;
+  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+  h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  return [(h1 ^ h2 ^ h3 ^ h4) >>> 0, (h2 ^ h1) >>> 0, (h3 ^ h1) >>> 0, (h4 ^ h1) >>> 0];
 }
 
-function mulberry32(seed) {
+function sfc32(a, b, c, d) {
   return function next() {
-    let value = seed += 0x6D2B79F5;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    a >>>= 0;
+    b >>>= 0;
+    c >>>= 0;
+    d >>>= 0;
+    const t = (a + b + d) >>> 0;
+    d = (d + 1) >>> 0;
+    a = b ^ (b >>> 9);
+    b = (c + (c << 3)) >>> 0;
+    c = ((c << 21) | (c >>> 11)) >>> 0;
+    c = (c + t) >>> 0;
+    return (t >>> 0) / 4294967296;
   };
 }

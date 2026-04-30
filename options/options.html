@@ -58,7 +58,7 @@
               <h2 id="networkHeading">Network</h2>
             </div>
             <button class="switch-control" type="button" data-setting="proxyEnabled" aria-pressed="false">
-              <span>SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
+              <span>Tor / SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
             </button>
           </header>
           <div class="route-editor">
@@ -134,7 +134,7 @@
           </header>
           <p class="section-note">When enabled, localStorage / IndexedDB / Cache / BroadcastChannel are namespaced with a per-profile salt. Sites you assign profiles to will be signed out on toggle. Off by default.</p>
           <div class="setting-row dense">
-            <div><b>Block Service Workers</b><span>Off by default — Gmail, Docs, Meet, and many PWAs depend on registering one.</span></div>
+            <div><b>Block Service Workers</b><span>Off by default. Gmail, Docs, Meet, and many PWAs depend on registering one.</span></div>
             <button class="switch-control small" type="button" data-setting="blockServiceWorkers" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
           </div>
         </section>
@@ -142,8 +142,8 @@
         <section class="module" aria-labelledby="piiHeading">
           <header class="module-head compact">
             <div>
-              <p class="micro">04 / PRIVACY PREFERENCES</p>
-              <h2 id="piiHeading">Privacy</h2>
+              <p class="micro">04 / PII SHIELD</p>
+              <h2 id="piiHeading">PII Shield</h2>
             </div>
           </header>
           <div class="row-list flush">
@@ -152,7 +152,7 @@
               <button class="switch-control small" type="button" data-setting="blockAutofill" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
             </div>
             <div class="setting-row">
-              <div><b>Referrer trimming</b><span>Reduces cross-site origin disclosure. Some auth flows require referrers — verify before enabling.</span></div>
+              <div><b>Referrer trimming</b><span>Reduces cross-site origin disclosure. Some auth flows require referrers; verify before enabling.</span></div>
               <button class="switch-control small" type="button" data-setting="blockReferrers" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
             </div>
             <div class="setting-row">
@@ -189,7 +189,7 @@
             </div>
             <button class="switch-control small" type="button" data-setting="behaviorNoise" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
           </header>
-          <p class="section-note">Adds &lt;1px pointer-coordinate jitter. Date.now() and performance.now() are intentionally left untouched — patching them breaks JWT validation, TOTP, and signed cookies.</p>
+          <p class="section-note">Adds small pointer-coordinate jitter. Timing APIs are left untouched to avoid breaking authentication, signed cookies, and time-based login flows.</p>
         </section>
       </section>
 
@@ -233,12 +233,20 @@
           <div class="random-grid" aria-label="Profile randomized values">
             <div><span>Profile ID</span><b id="randomProfileId">--</b></div>
             <div><span>Seed</span><b id="randomSeed">--</b></div>
+            <div><span>Accent</span><b id="randomAccent">--</b></div>
+            <div><span>OS / Browser Claim</span><b id="randomOsBrowser">--</b></div>
             <div><span>Language</span><b id="randomLanguage">--</b></div>
+            <div><span>Timezone</span><b id="randomTimezone">--</b></div>
+            <div><span>Screen</span><b id="randomScreen">--</b></div>
             <div><span>CPU / Memory</span><b id="randomHardware">--</b></div>
             <div><span>Canvas Seed</span><b id="canvasSeed">--</b></div>
             <div><span>Audio Seed</span><b id="audioSeed">--</b></div>
             <div><span>Behavior Seed</span><b id="behaviorSeed">--</b></div>
             <div><span>Tracker Salt</span><b id="trackerSalt">--</b></div>
+            <div><span>Storage Salt</span><b id="storageSalt">--</b></div>
+            <div><span>IndexedDB Salt</span><b id="indexedDbSalt">--</b></div>
+            <div><span>Cache Salt</span><b id="cacheSalt">--</b></div>
+            <div><span>BroadcastChannel Salt</span><b id="channelSalt">--</b></div>
           </div>
 
           <div class="page-rules">

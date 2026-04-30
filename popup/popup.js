@@ -46,7 +46,7 @@ profileSelect.addEventListener("change", () => {
 applyButton.addEventListener("click", async () => {
   if (!context.host) return;
   if (context.defaultExcluded) {
-    hostNote.textContent = "Auth/payment domain — protected by default. Remove from exclusions in Settings to override.";
+    hostNote.textContent = "Auth/payment domain - protected by default. Remove from exclusions in Settings to override.";
     return;
   }
   await saveGlobal();
@@ -59,7 +59,7 @@ applyButton.addEventListener("click", async () => {
   });
   if (result?.ok) {
     if (result.cookiesCleared > 0) {
-      hostNote.textContent = `Applied — ${result.cookiesCleared} cookie${result.cookiesCleared !== 1 ? "s" : ""} cleared`;
+      hostNote.textContent = `Applied - ${result.cookiesCleared} cookie${result.cookiesCleared !== 1 ? "s" : ""} cleared`;
     }
     hydrate(result);
   }
@@ -105,7 +105,7 @@ function render() {
   hostState.textContent = context.host || "No supported page";
   if (context.defaultExcluded) {
     hostCell.dataset.state = "excluded";
-    hostNote.textContent = "Auth/payment — shields off by default";
+    hostNote.textContent = "Auth/payment - shields off by default";
   } else if (context.excluded) {
     hostCell.dataset.state = "excluded";
     hostNote.textContent = "User-excluded";

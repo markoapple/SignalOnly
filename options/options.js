@@ -314,7 +314,7 @@ function renderGlobal(profile) {
 
   activeHost.textContent = context.host || "No active tab";
   if (context.defaultExcluded) {
-    activeHostNote.textContent = "Auth/payment — protected default";
+    activeHostNote.textContent = "Auth/payment - protected default";
   } else if (context.excluded) {
     activeHostNote.textContent = "User-excluded";
   } else if (context.assignment?.enabled) {
@@ -390,12 +390,20 @@ function renderProfileEditor() {
   document.getElementById("profileWebgl").textContent = randomization.webglRenderer || "--";
   document.getElementById("randomProfileId").textContent = randomization.profileId || "--";
   document.getElementById("randomSeed").textContent = shortHex(randomization.seedHex, 16);
+  document.getElementById("randomAccent").textContent = profile.accent || "--";
+  document.getElementById("randomOsBrowser").textContent = `${randomization.model || "--"} / ${randomization.platform || "--"}`;
   document.getElementById("randomLanguage").textContent = Array.isArray(randomization.languages) ? randomization.languages.join(", ") : randomization.language || "--";
+  document.getElementById("randomTimezone").textContent = randomization.timezone || "--";
+  document.getElementById("randomScreen").textContent = randomization.screen ? `${randomization.screen.width}x${randomization.screen.height} @ ${randomization.screen.devicePixelRatio}` : "--";
   document.getElementById("randomHardware").textContent = `${randomization.hardwareConcurrency || "--"} cores / ${randomization.deviceMemory || "--"} GB`;
   document.getElementById("canvasSeed").textContent = shortHex(randomization.canvasNoiseSeed);
   document.getElementById("audioSeed").textContent = shortHex(randomization.audioNoiseSeed);
   document.getElementById("behaviorSeed").textContent = shortHex(randomization.behaviorJitterSeed);
   document.getElementById("trackerSalt").textContent = shortHex(randomization.trackerRuleSalt);
+  document.getElementById("storageSalt").textContent = shortHex(randomization.salts?.storage);
+  document.getElementById("indexedDbSalt").textContent = shortHex(randomization.salts?.indexedDB);
+  document.getElementById("cacheSalt").textContent = shortHex(randomization.salts?.cache);
+  document.getElementById("channelSalt").textContent = shortHex(randomization.salts?.broadcastChannel);
 
   const cookiePolicySelect = document.getElementById("profileCookiePolicy");
   if (cookiePolicySelect) {
@@ -420,7 +428,7 @@ function renderSiteTable() {
   if (!entries.length) {
     const empty = document.createElement("div");
     empty.className = "site-row";
-    empty.textContent = "No site profiles configured — local index empty";
+    empty.textContent = "No site profiles configured - local index empty";
     siteTable.append(empty);
     return;
   }
@@ -457,7 +465,7 @@ function renderExclusionList() {
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "exclusion-row";
-    empty.textContent = "No exclusions — defaults still enforced";
+    empty.textContent = "No exclusions - defaults still enforced";
     exclusionList.append(empty);
     return;
   }

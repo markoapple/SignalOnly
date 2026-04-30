@@ -168,13 +168,13 @@ select {
 
 .switch {
   display: grid;
-  grid-template-columns: 1fr 70px;
+  grid-template-columns: 1fr 72px;
   gap: 8px;
   align-items: center;
   min-height: 44px;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 2px;
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
@@ -190,9 +190,10 @@ select {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  width: 70px;
-  height: 26px;
+  width: 72px;
+  height: 30px;
   border: 1px solid var(--line);
+  border-radius: 2px;
   background: var(--soft);
   font-style: normal;
   font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Consolas, monospace;
@@ -206,7 +207,7 @@ select {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 34px;
+  width: 35px;
   background: var(--accent);
   border-right: 1px solid var(--line);
   transition: transform 120ms ease;
@@ -220,7 +221,7 @@ select {
 }
 
 .switch[aria-pressed="false"] i::before {
-  transform: translateX(34px);
+  transform: translateX(35px);
   background: var(--paper);
   border-left: 1px solid var(--line);
   border-right: 0;

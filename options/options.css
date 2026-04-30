@@ -4,7 +4,8 @@
   --ink: #040404;
   --muted: #656159;
   --line: rgba(4, 4, 4, 0.92);
-  --hair: rgba(4, 4, 4, 0.22);
+  --hair: rgba(4, 4, 4, 0.16);
+  --faint: rgba(4, 4, 4, 0.08);
   --soft: #dfddd5;
   --accent: #ff006e;
   --danger: #ff4b1f;
@@ -33,7 +34,7 @@ textarea {
 
 button {
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 2px;
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
@@ -71,13 +72,13 @@ h2 {
 }
 
 h1 {
-  font-size: clamp(58px, 7vw, 96px);
-  line-height: 0.88;
+  font-size: clamp(52px, 6vw, 78px);
+  line-height: 0.9;
 }
 
 h2 {
-  font-size: 30px;
-  line-height: 0.95;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .micro,
@@ -150,7 +151,7 @@ textarea {
 .sheet-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 22px 18px;
 }
 
 .module,
@@ -160,13 +161,13 @@ textarea {
 .config-system {
   background: var(--paper);
   border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--hair);
+  border-bottom: 1px solid var(--faint);
 }
 
 .module,
 .profile-index,
 .profile-editor {
-  padding: 18px;
+  padding: 22px 20px;
 }
 
 .span-2 {
@@ -191,7 +192,7 @@ textarea {
 
 .route-editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px 150px;
+  grid-template-columns: minmax(0, 1fr) 116px 190px 150px;
   gap: 10px;
   align-items: end;
   margin-bottom: 14px;
@@ -227,10 +228,13 @@ select {
 .button-primary {
   background: var(--ink);
   color: #fff;
+  border-color: var(--ink);
 }
 
 .danger {
   background: var(--danger);
+  border-color: var(--danger);
+  color: var(--ink);
 }
 
 .switch-control {
@@ -241,6 +245,7 @@ select {
   min-height: 38px;
   padding: 6px 9px;
   text-align: left;
+  border-radius: 2px;
 }
 
 .switch-control > span {
@@ -255,6 +260,7 @@ select {
   width: 82px;
   height: 32px;
   border: 1px solid var(--line);
+  border-radius: 2px;
   background: var(--soft);
   font-style: normal;
   font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
@@ -342,13 +348,13 @@ select {
 .metadata {
   display: grid;
   grid-template-columns: 110px 1fr;
-  gap: 8px 12px;
+  gap: 7px 12px;
   align-items: baseline;
   font-size: 11px;
+  padding-top: 2px;
 }
 
-.metadata b,
-.random-grid b {
+.metadata b {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -357,36 +363,50 @@ select {
   font-size: 13px;
 }
 
+.random-grid b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.random-grid span {
+  font-size: 9px;
+}
+
 .profile-system {
   display: grid;
-  grid-template-columns: 330px 1fr;
-  gap: 12px;
-  margin-top: 14px;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+  margin-top: 26px;
 }
 
 .profile-list {
   display: grid;
-  gap: 1px;
+  gap: 7px;
   margin-top: 16px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  background: transparent;
+  border: 0;
 }
 
 .profile-list button {
   display: grid;
-  grid-template-columns: 10px 1fr auto;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   min-height: 62px;
   height: auto;
   padding: 12px;
-  border: 0;
+  border: 1px solid var(--hair);
   background: var(--paper);
   text-align: left;
 }
 
 .profile-list button[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  border-color: var(--line);
+  box-shadow: inset 4px 0 0 0 var(--accent);
 }
 
 .swatch {
@@ -421,6 +441,15 @@ select {
   padding: 0 13px;
 }
 
+.button-cluster button:not(.button-primary):not(.danger) {
+  background: #fff;
+  border-color: var(--hair);
+}
+
+.button-cluster button:not(.button-primary):not(.danger):hover {
+  border-color: var(--line);
+}
+
 .definition {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 132px 110px 170px 128px;
@@ -432,17 +461,24 @@ select {
 .random-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  gap: 0;
+  background: transparent;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--hair);
 }
 
 .random-grid div {
   display: grid;
-  gap: 8px;
-  min-height: 70px;
-  padding: 12px;
-  background: var(--base);
+  gap: 7px;
+  min-height: 64px;
+  padding: 11px 12px;
+  background: transparent;
+  border-right: 1px solid var(--faint);
+  border-bottom: 1px solid var(--faint);
+}
+
+.random-grid div:nth-child(4n) {
+  border-right: 0;
 }
 
 .page-rules {
@@ -461,16 +497,20 @@ select {
   min-height: 42px;
   padding: 0 8px;
   font-size: 12px;
+  border-color: var(--hair);
+  background: #fff;
 }
 
 .module-switch[aria-pressed="true"] {
-  background: var(--accent);
+  background: var(--paper);
+  border-color: var(--line);
+  box-shadow: inset 0 -4px 0 0 var(--accent);
 }
 
 .site-system,
 .config-system {
-  margin-top: 14px;
-  padding: 18px;
+  margin-top: 26px;
+  padding: 22px 20px;
 }
 
 .site-editor {
@@ -483,9 +523,9 @@ select {
 
 .site-table {
   display: grid;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  gap: 0;
+  background: transparent;
+  border-top: 1px solid var(--line);
   font-size: 11px;
 }
 
@@ -497,6 +537,7 @@ select {
   min-height: 48px;
   padding: 0 12px;
   background: var(--paper);
+  border-bottom: 1px solid var(--faint);
 }
 
 .site-row button {
@@ -526,7 +567,7 @@ textarea {
   padding: 15px 18px;
   background: var(--paper);
   border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--hair);
+  border-bottom: 1px solid var(--faint);
 }
 
 .banner p {
@@ -570,11 +611,11 @@ textarea {
 }
 
 .exclusion-system {
-  margin-top: 14px;
-  padding: 18px;
+  margin-top: 26px;
+  padding: 22px 20px;
   background: var(--paper);
   border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--hair);
+  border-bottom: 1px solid var(--faint);
 }
 
 .exclusion-editor {
@@ -586,9 +627,9 @@ textarea {
 
 .exclusion-list {
   display: grid;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  gap: 0;
+  background: transparent;
+  border-top: 1px solid var(--line);
 }
 
 .exclusion-row {
@@ -599,6 +640,7 @@ textarea {
   min-height: 46px;
   padding: 0 12px;
   background: var(--paper);
+  border-bottom: 1px solid var(--faint);
   font-size: 12px;
 }
 

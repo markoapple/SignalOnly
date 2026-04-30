@@ -1,5 +1,7 @@
 # Build artifacts
 _metadata/generated_indexed_rulesets/
+artifacts/
+dist/
 
 # OS files
 .DS_Store
