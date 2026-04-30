@@ -45,8 +45,8 @@ profileSelect.addEventListener("change", () => {
 
 applyButton.addEventListener("click", async () => {
   if (!context.host) return;
-  if (context.defaultExcluded) {
-    hostNote.textContent = "Auth/payment domain - protected by default. Remove from exclusions in Settings to override.";
+  if (context.excluded) {
+    hostNote.textContent = "Excluded: direct route / shields off. Remove the exclusion in Settings to apply a profile.";
     return;
   }
   await saveGlobal();
@@ -103,12 +103,9 @@ function render() {
   document.documentElement.style.setProperty("--accent", selectedProfile?.accent || "#ff006e");
 
   hostState.textContent = context.host || "No supported page";
-  if (context.defaultExcluded) {
+  if (context.excluded) {
     hostCell.dataset.state = "excluded";
-    hostNote.textContent = "Auth/payment - shields off by default";
-  } else if (context.excluded) {
-    hostCell.dataset.state = "excluded";
-    hostNote.textContent = "User-excluded";
+    hostNote.textContent = "Excluded: direct route / shields off";
   } else if (context.assignment?.enabled) {
     hostCell.dataset.state = "active";
     hostNote.textContent = `Assigned: ${context.currentProfile?.name || ""}`;

@@ -4,7 +4,15 @@ const SCHEMA_VERSION = 3;
 const HEADER_RULE_ID = 7100;
 const THIRD_PARTY_RULE_ID = 7101;
 const ETAG_RULE_ID = 7102;
-const DYNAMIC_RULE_IDS = [HEADER_RULE_ID, THIRD_PARTY_RULE_ID, ETAG_RULE_ID];
+const EXCLUDED_INITIATOR_ALLOW_RULE_ID = 7103;
+const EXCLUDED_REQUEST_ALLOW_RULE_ID = 7104;
+const DYNAMIC_RULE_IDS = [
+  HEADER_RULE_ID,
+  THIRD_PARTY_RULE_ID,
+  ETAG_RULE_ID,
+  EXCLUDED_INITIATOR_ALLOW_RULE_ID,
+  EXCLUDED_REQUEST_ALLOW_RULE_ID
+];
 
 const RESOURCE_TYPES = [
   "main_frame",
@@ -52,29 +60,6 @@ const DEFAULT_EXCLUDED_HOSTS = [
   "www.paypal.com"
 ];
 
-const TRUSTED_DOMAINS = [
-  "google.com",
-  "googleapis.com",
-  "gstatic.com",
-  "googleusercontent.com",
-  "youtube.com",
-  "ytimg.com",
-  "apple.com",
-  "icloud.com",
-  "microsoft.com",
-  "microsoftonline.com",
-  "live.com",
-  "office.com",
-  "github.com",
-  "githubusercontent.com",
-  "atlassian.com",
-  "okta.com",
-  "auth0.com",
-  "openai.com",
-  "stripe.com",
-  "paypal.com"
-];
-
 const DEFAULT_SETTINGS = {
   schemaVersion: SCHEMA_VERSION,
   enabled: true,
@@ -109,7 +94,8 @@ const DEFAULT_SETTINGS = {
   profiles: [],
   siteAssignments: {},
   excludedHosts: [],
-  excludedHostsSeeded: false
+  excludedHostsSeeded: false,
+  lastProxyMode: "disabled"
 };
 
 const USER_AGENT_PRESETS = [
@@ -223,6 +209,12 @@ async function handleMessage(message, sender) {
       return saveSettings(message.settings || {});
     case "getContentConfig":
       return getContentConfig(message.url || sender?.url);
+    case "addExclusion":
+      return addExclusion(message.host);
+    case "removeExclusion":
+      return removeExclusion(message.host);
+    case "restoreDefaultExclusions":
+      return restoreDefaultExclusions();
     case "applySiteProfile":
       return applySiteProfile(message.host, message.profileId, message.enabled, message.clearCookies);
     case "resetSiteProfile":
@@ -257,10 +249,13 @@ async function getState(url = "") {
   const host = getHost(url || activeTab?.url || "");
   const assignment = host ? getSiteAssignment(settings, host) : null;
   const currentProfile = getProfile(settings, assignment?.profileId || settings.activeProfileId);
-  const telemetry = await getTelemetry();
+  const telemetry = await getTelemetry(settings, host);
 
   return {
     settings,
+    defaults: {
+      excludedHosts: normalizeHostList(DEFAULT_EXCLUDED_HOSTS)
+    },
     telemetry,
     version: chrome.runtime.getManifest().version,
     context: {
@@ -272,6 +267,52 @@ async function getState(url = "") {
       defaultExcluded: host ? matchesDomainList(host, DEFAULT_EXCLUDED_HOSTS) : false
     }
   };
+}
+
+async function addExclusion(host) {
+  const cleanHost = sanitizeHost(host);
+  if (!cleanHost) {
+    return { ok: false, error: "No valid host" };
+  }
+
+  const settings = await getSettings();
+  settings.excludedHosts = normalizeHostList([...(settings.excludedHosts || []), cleanHost]);
+  settings.excludedHostsSeeded = true;
+  await setSettings(settings);
+  await applyControls();
+  await updateDynamicRules();
+  await notifyAllTabs();
+  await updateActiveBadge();
+  return { ok: true, host: cleanHost, ...(await getState(`https://${cleanHost}/`)) };
+}
+
+async function removeExclusion(host) {
+  const cleanHost = sanitizeHost(host);
+  if (!cleanHost) {
+    return { ok: false, error: "No valid host" };
+  }
+
+  const settings = await getSettings();
+  settings.excludedHosts = normalizeHostList(settings.excludedHosts || []).filter((entry) => entry !== cleanHost);
+  settings.excludedHostsSeeded = true;
+  await setSettings(settings);
+  await applyControls();
+  await updateDynamicRules();
+  await notifyAllTabs();
+  await updateActiveBadge();
+  return { ok: true, host: cleanHost, ...(await getState(`https://${cleanHost}/`)) };
+}
+
+async function restoreDefaultExclusions() {
+  const settings = await getSettings();
+  settings.excludedHosts = normalizeHostList([...(settings.excludedHosts || []), ...DEFAULT_EXCLUDED_HOSTS]);
+  settings.excludedHostsSeeded = true;
+  await setSettings(settings);
+  await applyControls();
+  await updateDynamicRules();
+  await notifyAllTabs();
+  await updateActiveBadge();
+  return { ok: true, ...(await getState()) };
 }
 
 async function saveSettings(patch) {
@@ -321,6 +362,9 @@ async function applySiteProfile(host, profileId, enabled = true, clearCookies = 
   }
 
   const settings = await getSettings();
+  if (isExcluded(cleanHost, settings)) {
+    return { ok: false, error: "Host is excluded. Remove the exclusion before applying a site profile." };
+  }
   const oldAssignment = settings.siteAssignments[cleanHost];
   const profile = getProfile(settings, profileId) || getProfile(settings, settings.activeProfileId) || settings.profiles[0];
   if (!profile) {
@@ -353,6 +397,10 @@ async function clearSiteCookiesForHost(host) {
   const cleanHost = sanitizeHost(host);
   if (!cleanHost) {
     return { ok: false, cleared: 0, error: "No valid host" };
+  }
+  const settings = await getSettings();
+  if (isExcluded(cleanHost, settings)) {
+    return { ok: false, cleared: 0, error: "Host is excluded" };
   }
 
   let cleared = 0;
@@ -545,13 +593,10 @@ function normalizeSettings(stored) {
   const settings = { ...DEFAULT_SETTINGS, ...migrated };
   settings.profiles = normalizeProfiles(migrated.profiles);
   settings.siteAssignments = normalizeSiteAssignments(migrated.siteAssignments);
-  settings.excludedHosts = Array.isArray(migrated.excludedHosts)
-    ? [...new Set(migrated.excludedHosts.map(sanitizeHost).filter(Boolean))].slice(0, 200)
-    : [];
+  settings.excludedHosts = normalizeHostList(migrated.excludedHosts);
 
   if (!settings.excludedHostsSeeded) {
-    const merged = new Set([...settings.excludedHosts, ...DEFAULT_EXCLUDED_HOSTS]);
-    settings.excludedHosts = [...merged].slice(0, 200);
+    settings.excludedHosts = normalizeHostList([...settings.excludedHosts, ...DEFAULT_EXCLUDED_HOSTS]);
     settings.excludedHostsSeeded = true;
   }
 
@@ -678,9 +723,8 @@ function sanitizeSettingsPatch(patch) {
     clean.activeProfileId = String(patch.activeProfileId || "");
   }
   if ("excludedHosts" in patch) {
-    clean.excludedHosts = Array.isArray(patch.excludedHosts)
-      ? [...new Set(patch.excludedHosts.map(sanitizeHost).filter(Boolean))].slice(0, 200)
-      : [];
+    clean.excludedHosts = normalizeHostList(patch.excludedHosts);
+    clean.excludedHostsSeeded = true;
   }
   return clean;
 }
@@ -938,16 +982,34 @@ async function applyControls() {
 async function applyProxy(settings) {
   if (!settings.enabled || !settings.proxyEnabled) {
     await clearChromeSetting(chrome.proxy.settings);
+    settings.lastProxyMode = "disabled";
+    await setSettings(settings);
     return;
   }
 
-  await setChromeSetting(chrome.proxy.settings, {
+  const excludedHosts = normalizeHostList(settings.excludedHosts);
+  if (excludedHosts.length) {
+    const pacScript = buildPacScript(settings.proxyHost, settings.proxyPort, excludedHosts);
+    const ok = await setChromeSetting(chrome.proxy.settings, {
+      mode: "pac_script",
+      pacScript: { data: pacScript }
+    });
+    settings.lastProxyMode = ok === false ? "fixed" : "pac";
+    if (ok !== false) {
+      await setSettings(settings);
+      return;
+    }
+  }
+
+  const ok = await setChromeSetting(chrome.proxy.settings, {
     mode: "fixed_servers",
     rules: {
       singleProxy: { scheme: "socks5", host: settings.proxyHost, port: settings.proxyPort },
       bypassList: ["<local>", "localhost", "127.0.0.1", "::1"]
     }
   });
+  settings.lastProxyMode = ok === false ? "disabled" : "fixed";
+  await setSettings(settings);
 }
 
 async function applyPrivacySettings(settings) {
@@ -1010,10 +1072,28 @@ async function updateDynamicRules() {
   const profile = getProfile(settings, settings.activeProfileId) || settings.profiles[0];
   const addRules = [];
 
-  const initiatorExclusions = [...new Set([
-    ...TRUSTED_DOMAINS,
-    ...(settings.excludedHosts || []).map(toRegistrable)
-  ])].filter(Boolean);
+  const domainExclusions = normalizeHostList(settings.excludedHosts);
+
+  if (settings.enabled && domainExclusions.length) {
+    addRules.push({
+      id: EXCLUDED_INITIATOR_ALLOW_RULE_ID,
+      priority: 100,
+      action: { type: "allow" },
+      condition: {
+        initiatorDomains: domainExclusions,
+        resourceTypes: RESOURCE_TYPES
+      }
+    });
+    addRules.push({
+      id: EXCLUDED_REQUEST_ALLOW_RULE_ID,
+      priority: 100,
+      action: { type: "allow" },
+      condition: {
+        requestDomains: domainExclusions,
+        resourceTypes: RESOURCE_TYPES
+      }
+    });
+  }
 
   if (settings.enabled && settings.networkHeaders && profile) {
     const requestHeaders = [
@@ -1032,8 +1112,7 @@ async function updateDynamicRules() {
       condition: {
         regexFilter: "^https?://",
         resourceTypes: RESOURCE_TYPES,
-        excludedInitiatorDomains: initiatorExclusions,
-        excludedRequestDomains: initiatorExclusions
+        ...excludedDomainCondition(domainExclusions)
       }
     });
   }
@@ -1051,8 +1130,7 @@ async function updateDynamicRules() {
         regexFilter: "^https?://",
         domainType: "thirdParty",
         resourceTypes: RESOURCE_TYPES,
-        excludedInitiatorDomains: initiatorExclusions,
-        excludedRequestDomains: initiatorExclusions
+        ...excludedDomainCondition(domainExclusions)
       }
     });
   }
@@ -1072,8 +1150,7 @@ async function updateDynamicRules() {
         regexFilter: "^https?://",
         domainType: "thirdParty",
         resourceTypes: RESOURCE_TYPES,
-        excludedInitiatorDomains: initiatorExclusions,
-        excludedRequestDomains: initiatorExclusions
+        ...excludedDomainCondition(domainExclusions)
       }
     });
   }
@@ -1081,7 +1158,7 @@ async function updateDynamicRules() {
   await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: DYNAMIC_RULE_IDS, addRules }).catch(() => {});
 }
 
-async function getTelemetry() {
+async function getTelemetry(settings = null, host = "") {
   const [dynamicRules, enabledRulesets] = await Promise.all([
     chrome.declarativeNetRequest.getDynamicRules().catch(() => []),
     chrome.declarativeNetRequest.getEnabledRulesets().catch(() => [])
@@ -1104,8 +1181,20 @@ async function getTelemetry() {
   return {
     dynamicRuleCount: dynamicRules.length,
     staticRulesetCount: enabledRulesets.length,
-    staticRuleCount
+    staticRuleCount,
+    proxyMode: settings?.enabled && settings?.proxyEnabled ? settings.lastProxyMode || "fixed" : "disabled",
+    excludedHostCount: settings?.excludedHosts?.length || 0,
+    activeHostExcluded: Boolean(host && settings && isExcluded(host, settings))
   };
+}
+
+function excludedDomainCondition(domainExclusions) {
+  return domainExclusions.length
+    ? {
+        excludedInitiatorDomains: domainExclusions,
+        excludedRequestDomains: domainExclusions
+      }
+    : {};
 }
 
 function getSiteAssignment(settings, host) {
@@ -1196,16 +1285,20 @@ async function updateBadgeForTab(tabId) {
 
 function setChromeSetting(setting, value) {
   if (!setting?.set) {
-    return Promise.resolve();
+    return Promise.resolve(false);
   }
-  return new Promise((resolve) => setting.set({ value, scope: "regular" }, resolve));
+  return new Promise((resolve) => {
+    setting.set({ value, scope: "regular" }, () => resolve(!chrome.runtime.lastError));
+  });
 }
 
 function clearChromeSetting(setting) {
   if (!setting?.clear) {
-    return Promise.resolve();
+    return Promise.resolve(false);
   }
-  return new Promise((resolve) => setting.clear({ scope: "regular" }, resolve));
+  return new Promise((resolve) => {
+    setting.clear({ scope: "regular" }, () => resolve(!chrome.runtime.lastError));
+  });
 }
 
 function getHost(url) {
@@ -1219,10 +1312,7 @@ function getHost(url) {
 
 function isExcluded(host, settings) {
   if (!host) return false;
-  const userList = settings.excludedHosts || [];
-  if (matchesDomainList(host, userList)) return true;
-
-  return matchesDomainList(host, DEFAULT_EXCLUDED_HOSTS);
+  return matchesDomainList(host, settings.excludedHosts || []);
 }
 
 function matchesDomainList(host, list) {
@@ -1231,6 +1321,40 @@ function matchesDomainList(host, list) {
     if (!entry) return false;
     return host === entry || host.endsWith(`.${entry}`);
   });
+}
+
+function normalizeHostList(list) {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  return [...new Set(list.map(sanitizeHost).filter(Boolean))].slice(0, 200);
+}
+
+function buildPacScript(proxyHost, proxyPort, excludedHosts) {
+  const host = String(proxyHost || DEFAULT_SETTINGS.proxyHost).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  const port = Number(proxyPort) || DEFAULT_SETTINGS.proxyPort;
+  return `
+var SIGNALONLY_EXCLUDED = ${JSON.stringify(excludedHosts)};
+function signalOnlyMatches(host, domain) {
+  var suffix = "." + domain;
+  return host === domain || host.slice(-suffix.length) === suffix;
+}
+function FindProxyForURL(url, host) {
+  host = String(host || "").toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1" || isPlainHostName(host)) {
+    return "DIRECT";
+  }
+  for (var i = 0; i < SIGNALONLY_EXCLUDED.length; i += 1) {
+    if (signalOnlyMatches(host, SIGNALONLY_EXCLUDED[i])) {
+      return "DIRECT";
+    }
+  }
+  if (url.indexOf("http://") === 0 || url.indexOf("https://") === 0 || url.indexOf("ws://") === 0 || url.indexOf("wss://") === 0) {
+    return "SOCKS5 ${host}:${port}";
+  }
+  return "DIRECT";
+}
+`.trim();
 }
 
 function toRegistrable(host) {

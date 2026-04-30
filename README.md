@@ -4,7 +4,7 @@ SignalOnly is a browser extension that stops websites from fingerprinting and tr
 
 It creates isolated cookie profiles per site, spoofs deep fingerprinting vectors, and strips out toxic UI elements like popups, sticky headers, and algorithmic recommendations. 
 
-It's safe by default: sensitive sites like banks and logins are automatically excluded so you don't get locked out of your accounts. :3c
+It's safe by default: sensitive sites like banks and logins are preloaded as editable exclusions so you can bypass extension routing and shields where account access matters.
 
 ## What it actually does
 
@@ -18,7 +18,7 @@ It's safe by default: sensitive sites like banks and logins are automatically ex
 
 Other anti-tracking tools aggressively block scripts or rewrite `localStorage`, which breaks form submissions, OAuth, and checkout flows. 
 
-SignalOnly takes a different approach. It leaves the core functionality intact but poisons the telemetry data websites try to extract. For extremely fragile domains (like payment gateways or SSO providers), it automatically disables shields so you don't trigger fraud alerts.
+SignalOnly takes a different approach. It leaves the core functionality intact but poisons the telemetry data websites try to extract. For extremely fragile domains (like payment gateways or SSO providers), it ships editable exclusions that bypass extension routing and shields so you can avoid fraud alerts and broken account flows.
 
 ## Installation
 

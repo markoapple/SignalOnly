@@ -27,7 +27,7 @@
 
       <section class="banner" role="note">
         <p class="micro">SAFE BY DEFAULT</p>
-        <p>SignalOnly ships with auth and payment domains (Google, Apple, Microsoft, GitHub, Stripe, PayPal, ...) on a permanent shield-exclusion list. Page-world fingerprint patches only run on sites you explicitly opt in. Header rewriting and third-party cookie stripping skip those domains regardless of settings.</p>
+        <p>SignalOnly ships with auth and payment domains (Google, Apple, Microsoft, GitHub, Stripe, PayPal, ...) preloaded as editable exclusions. Exclusions bypass extension routing, request rules, page-world shields, and site cleanup where Chrome supports host scoping.</p>
       </section>
 
       <section class="overview" aria-label="Current status">
@@ -39,6 +39,7 @@
         <div>
           <span>SOCKS Proxy</span>
           <b id="proxyStatus">Disabled</b>
+          <small id="proxyModeStatus"></small>
         </div>
         <div>
           <span>Current Profile</span>
@@ -291,11 +292,13 @@
             <h2>Excluded Hosts</h2>
           </div>
           <div class="button-cluster">
+            <button id="excludeCurrentSiteButton" type="button">Exclude Current Site</button>
+            <button id="removeCurrentExclusionButton" type="button">Remove Current Site Exclusion</button>
             <button id="addExclusionButton" type="button">Add Host</button>
             <button id="resetExclusionsButton" type="button">Restore Defaults</button>
           </div>
         </header>
-        <p class="section-note">SignalOnly never applies page-world patches, header rewriting, or cookie stripping to these hosts. Defaults cover the major identity and payment providers and are always enforced even if removed here.</p>
+        <p class="section-note">Excluded hosts bypass extension routing, request rules, content shields, and site cleanup where Chrome allows host scoping. WebRTC and Chrome privacy preferences are browser-global, so exclusions do not change those global settings.</p>
         <div class="exclusion-editor">
           <label class="field"><span>Host</span><input id="exclusionInput" type="text" spellcheck="false" placeholder="accounts.example.com"></label>
         </div>

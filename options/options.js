@@ -37,33 +37,14 @@ const exclusionInput = document.getElementById("exclusionInput");
 const exclusionList = document.getElementById("exclusionList");
 const addExclusionButton = document.getElementById("addExclusionButton");
 const resetExclusionsButton = document.getElementById("resetExclusionsButton");
-
-const DEFAULT_EXCLUDED_HOSTS = [
-  "accounts.google.com",
-  "myaccount.google.com",
-  "oauth2.googleapis.com",
-  "accounts.youtube.com",
-  "pay.google.com",
-  "appleid.apple.com",
-  "idmsa.apple.com",
-  "login.microsoftonline.com",
-  "login.live.com",
-  "login.microsoft.com",
-  "login.yahoo.com",
-  "github.com",
-  "id.atlassian.com",
-  "auth.openai.com",
-  "auth0.com",
-  "okta.com",
-  "duosecurity.com",
-  "checkout.stripe.com",
-  "js.stripe.com",
-  "paypal.com",
-  "www.paypal.com"
-];
+const excludeCurrentSiteButton = document.getElementById("excludeCurrentSiteButton");
+const removeCurrentExclusionButton = document.getElementById("removeCurrentExclusionButton");
+const proxyModeStatus = document.getElementById("proxyModeStatus");
 
 let settings = {};
 let context = {};
+let defaults = {};
+let telemetry = {};
 let selectedProfileId = "";
 
 init();
@@ -238,21 +219,43 @@ deleteProfileButton.addEventListener("click", async () => {
 });
 
 addExclusionButton.addEventListener("click", async () => {
-  const candidate = (exclusionInput.value || "").trim().toLowerCase();
-  if (!candidate) return;
-  const next = [...new Set([...(settings.excludedHosts || []), candidate])];
-  const result = await send({ type: "saveSettings", settings: { excludedHosts: next } });
+  const candidate = exclusionInput.value || "";
+  if (!candidate.trim()) return;
+  const result = await send({ type: "addExclusion", host: candidate });
   if (result?.ok) {
     exclusionInput.value = "";
-    setStatus(`Added ${candidate} to exclusions`);
+    setStatus(`Added ${result.host} to exclusions`);
     hydrate(result);
+  } else {
+    setStatus(result?.error || "Add exclusion failed");
   }
 });
 
 resetExclusionsButton.addEventListener("click", async () => {
-  const merged = [...new Set([...(settings.excludedHosts || []), ...DEFAULT_EXCLUDED_HOSTS])];
-  const result = await send({ type: "saveSettings", settings: { excludedHosts: merged } });
-  setStatus(result?.ok ? "Default exclusions restored" : "Failed");
+  const result = await send({ type: "restoreDefaultExclusions" });
+  setStatus(result?.ok ? "Default exclusions restored" : result?.error || "Restore failed");
+  if (result?.ok) hydrate(result);
+});
+
+excludeCurrentSiteButton.addEventListener("click", async () => {
+  const host = selectedHost();
+  if (!host) {
+    setStatus("No host selected");
+    return;
+  }
+  const result = await send({ type: "addExclusion", host });
+  setStatus(result?.ok ? `Excluded ${result.host}` : result?.error || "Exclude failed");
+  if (result?.ok) hydrate(result);
+});
+
+removeCurrentExclusionButton.addEventListener("click", async () => {
+  const host = selectedHost();
+  if (!host) {
+    setStatus("No host selected");
+    return;
+  }
+  const result = await send({ type: "removeExclusion", host });
+  setStatus(result?.ok ? `Removed ${result.host} from exclusions` : result?.error || "Remove failed");
   if (result?.ok) hydrate(result);
 });
 
@@ -277,6 +280,8 @@ importConfigButton.addEventListener("click", async () => {
 function hydrate(state) {
   settings = state.settings || {};
   context = state.context || {};
+  defaults = state.defaults || {};
+  telemetry = state.telemetry || {};
   selectedProfileId = settings.profiles?.some((profile) => profile.id === selectedProfileId)
     ? selectedProfileId
     : context.currentProfile?.id || settings.activeProfileId || settings.profiles?.[0]?.id || "";
@@ -311,12 +316,11 @@ function renderGlobal(profile) {
   webRtcSelect.value = settings.webRtcMode || "soft";
   globalState.textContent = settings.enabled ? "Enabled" : "Disabled";
   proxyStatus.textContent = settings.enabled && settings.proxyEnabled ? `${settings.proxyHost}:${settings.proxyPort}` : "Disabled";
+  proxyModeStatus.textContent = telemetry.proxyMode ? `Mode: ${telemetry.proxyMode}` : "";
 
   activeHost.textContent = context.host || "No active tab";
-  if (context.defaultExcluded) {
-    activeHostNote.textContent = "Auth/payment - protected default";
-  } else if (context.excluded) {
-    activeHostNote.textContent = "User-excluded";
+  if (context.excluded) {
+    activeHostNote.textContent = "Excluded: direct route / shields off";
   } else if (context.assignment?.enabled) {
     activeHostNote.textContent = `Assigned: ${profile?.name || ""}`;
   } else if (context.assignment) {
@@ -465,7 +469,7 @@ function renderExclusionList() {
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "exclusion-row";
-    empty.textContent = "No exclusions - defaults still enforced";
+    empty.textContent = "No exclusions configured";
     exclusionList.append(empty);
     return;
   }
@@ -478,20 +482,22 @@ function renderExclusionList() {
     label.textContent = host;
     row.append(label);
 
-    const isDefault = DEFAULT_EXCLUDED_HOSTS.includes(host);
+    const isDefault = (defaults.excludedHosts || []).includes(host);
+    const isActive = context.host && (context.host === host || context.host.endsWith(`.${host}`));
     const tag = document.createElement("span");
-    tag.textContent = isDefault ? "Default" : "Custom";
+    tag.textContent = [isDefault ? "Default" : "Custom", isActive ? "Active site" : ""].filter(Boolean).join(" / ");
     row.append(tag);
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.textContent = "Remove";
     removeButton.addEventListener("click", async () => {
-      const next = (settings.excludedHosts || []).filter((entry) => entry !== host);
-      const result = await send({ type: "saveSettings", settings: { excludedHosts: next } });
+      const result = await send({ type: "removeExclusion", host });
       if (result?.ok) {
-        setStatus(`Removed ${host}${isDefault ? " (defaults still enforced internally)" : ""}`);
+        setStatus(`Removed ${result.host} from exclusions`);
         hydrate(result);
+      } else {
+        setStatus(result?.error || "Remove failed");
       }
     });
     row.append(removeButton);
