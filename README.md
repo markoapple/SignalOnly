@@ -48,7 +48,7 @@ Use exclusions for sites where you want SignalOnly completely out of the way, es
 
 The basic test is to assign Profile A to a fingerprint test page, reload, and confirm the result stays stable. Then switch to Profile B, reload, and confirm the surface changes. Switch back to Profile A and check that the old surface and cookies return.
 
-Also test the actual sites you care about. That matters more than a perfect-looking demo page.
+Also test the actual sites you care about.
 
 ## Project layout
 
