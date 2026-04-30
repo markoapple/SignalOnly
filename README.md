@@ -8,11 +8,11 @@ It's safe by default: sensitive sites like banks and logins are automatically ex
 
 ## What it actually does
 
-- **Fingerprint Spoofing**: Feeds fake but consistent data to scripts checking Canvas, WebGL, AudioContext, DOMRects, Math precision, screen posture, plugins, and hardware concurrency.
-- **Cookie Isolation**: Enforces per-site cookie profiles. You can set cookies to keep, clear on tab close, or clear on profile switch. It also automatically sweeps known tracking cookies and caps first-party cookie lifetimes.
-- **UI Cleanup**: Visually removes algorithmic recommendations, vanity metrics, overlays, and sticky headers using safe, non-destructive DOM tagging.
-- **Network Routing**: Built-in SOCKS proxy support and WebRTC leak protection.
-- **Header Stripping**: Blocks declarative tracking headers (ETag, Last-Modified) on third-party requests.
+ **Fingerprint Spoofing**: Feeds fake but consistent data to scripts checking Canvas, WebGL, AudioContext, DOMRects, Math precision, screen posture, plugins, and hardware concurrency.
+ **Cookie Isolation**: Enforces per-site cookie profiles. You can set cookies to keep, clear on tab close, or clear on profile switch. It also automatically sweeps known tracking cookies and caps first-party cookie lifetimes.
+ **UI Cleanup**: Visually removes algorithmic recommendations, vanity metrics, overlays, and sticky headers using safe, non-destructive DOM tagging.
+ **Network Routing**: Built-in SOCKS proxy support and WebRTC leak protection.
+ **Header Stripping**: Blocks declarative tracking headers (ETag, Last-Modified) on third-party requests.
 
 ## Why it doesn't break everything
 
