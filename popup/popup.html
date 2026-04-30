@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SignalOnly</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup" aria-live="polite">
+      <header class="top">
+        <div>
+          <div class="wordmark">SignalOnly</div>
+          <div class="subline">Privacy controls</div>
+        </div>
+        <div class="meta">
+          <span id="versionTag">v--</span>
+          <span id="profileId">PROFILE --</span>
+        </div>
+      </header>
+
+      <section class="status">
+        <div class="status-host" data-state="default">
+          <span>Active site</span>
+          <b id="hostState">No site</b>
+          <small id="hostNote"></small>
+        </div>
+        <div>
+          <span>SOCKS Proxy</span>
+          <b id="proxyState">Disabled</b>
+        </div>
+        <div>
+          <span>WebRTC</span>
+          <b id="webrtcState">Default</b>
+        </div>
+      </section>
+
+      <div id="reloadBanner" class="reload-banner" hidden>
+        <b>Reload required</b>
+        <small>Some shield changes need a page reload to fully apply or revert.</small>
+        <button id="reloadButton" type="button">Reload</button>
+      </div>
+
+      <label class="profile-row">
+        <span>Site Profile</span>
+        <select id="profileSelect"></select>
+      </label>
+
+      <section class="switches" aria-label="Site privacy modules">
+        <button class="switch master-switch" type="button" data-site-toggle="enabled" aria-pressed="false" aria-label="Current site protection on/off">
+          <span>Current Site Protection</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-site-module="fingerprint" aria-pressed="true">
+          <span>Fingerprint</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-site-module="storage" aria-pressed="false">
+          <span>Storage</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-site-module="sensors" aria-pressed="true">
+          <span>Sensors</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-site-module="behavior" aria-pressed="false">
+          <span>Behavior</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-site-module="piiShield" aria-pressed="false">
+          <span>PII Shield</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+      </section>
+
+      <section class="switches global-switches" aria-label="Global controls">
+        <p class="section-note">Browser-global (apply everywhere Chrome lets us)</p>
+        <button class="switch" type="button" data-global-setting="enabled" aria-pressed="true">
+          <span>Extension Master</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-global-setting="proxyEnabled" aria-pressed="false">
+          <span>SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-global-setting="thirdPartyIsolation" aria-pressed="false">
+          <span>3p Cookies (global)</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+      </section>
+
+      <footer class="actions">
+        <button id="applyButton" class="primary" type="button">Apply to Current Site</button>
+        <button id="resetButton" type="button">Reset Site</button>
+        <button id="optionsButton" type="button">Settings</button>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

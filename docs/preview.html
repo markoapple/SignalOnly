@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SignalOnly Preview</title>
+    <link rel="stylesheet" href="preview.css">
+  </head>
+  <body>
+    <main class="preview-shell">
+      <section class="hero" aria-labelledby="title">
+        <div class="hero-copy">
+          <p class="micro">SO / MV3 / LOCAL EXTENSION</p>
+          <h1 id="title">SignalOnly</h1>
+          <p class="intro">Privacy profiles, routing controls, and browser-surface reduction in one local extension.</p>
+          <div class="chips" aria-label="Preview states">
+            <span>SOCKS 127.0.0.1:9050</span>
+            <span>Public IP Only</span>
+            <span>Standard (PR-01)</span>
+            <span>Storage isolated</span>
+            <span>Profile seeded</span>
+            <span>Rules reversible</span>
+          </div>
+        </div>
+
+        <div class="product-stage" aria-label="Rendered SignalOnly extension UI">
+          <figure class="shot popup-shot">
+            <img src="../assets/preview-popup.png" alt="Rendered SignalOnly popup showing current site protection, SOCKS proxy, WebRTC, profile selection, and site module switches.">
+          </figure>
+          <figure class="shot settings-shot">
+            <img src="../assets/preview-settings.png" alt="Rendered SignalOnly settings profile randomization panel with profile list, generated values, salts, and cleanup rules.">
+          </figure>
+        </div>
+      </section>
+
+      <section class="module-strip" aria-label="Core modules">
+        <span>Tor / SOCKS Proxy</span>
+        <span>WebRTC</span>
+        <span>Fingerprint</span>
+        <span>Storage Isolation</span>
+        <span>PII Shield</span>
+        <span>Sensors</span>
+        <span>Behavior Noise</span>
+        <span>Site Profiles</span>
+        <span>Reversible Rules</span>
+      </section>
+
+      <section class="details" aria-labelledby="details-title">
+        <div>
+          <p class="micro">Preview source</p>
+          <h2 id="details-title">Rendered from the real extension UI.</h2>
+        </div>
+        <div class="detail-grid">
+          <article>
+            <h3>Popup</h3>
+            <p>The popup image is rendered from <code>popup/popup.html</code> with the current popup stylesheet and a mocked extension state.</p>
+          </article>
+          <article>
+            <h3>Settings</h3>
+            <p>The profile panel is rendered from <code>options/options.html</code>, using the actual settings layout, profile list, randomization plate, salts, and controls.</p>
+          </article>
+          <article>
+            <h3>README hero</h3>
+            <p>The banner composes the real popup and settings captures into a compact product card for GitHub.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="use" aria-labelledby="use-title">
+        <div>
+          <p class="micro">Use</p>
+          <h2 id="use-title">Load unpacked, choose profile, apply to site.</h2>
+        </div>
+        <ol>
+          <li>Load the repository as an unpacked Chromium extension.</li>
+          <li>Open the popup.</li>
+          <li>Select Standard (PR-01) or another site profile.</li>
+          <li>Apply to site. Reset site when done.</li>
+        </ol>
+      </section>
+    </main>
+  </body>
+</html>
