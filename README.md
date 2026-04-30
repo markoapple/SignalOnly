@@ -1,5 +1,7 @@
 # SignalOnly Privacy Surface
 
+Cool little privacy extension.
+
 SignalOnly is a Manifest V3 Chrome extension prototype with two layers:
 
 - Global privacy surface: Tor SOCKS routing, browser privacy controls, WebRTC leak reduction, network header rules, third-party cookie isolation, and fingerprint surface reduction.
