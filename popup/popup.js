@@ -9,13 +9,18 @@ const proxyState = document.getElementById("proxyState");
 const webrtcState = document.getElementById("webrtcState");
 const profileId = document.getElementById("profileId");
 const versionTag = document.getElementById("versionTag");
-const switches = [...document.querySelectorAll(".switch[data-setting]")];
-const SITE_SCOPED_SETTINGS = new Set(["enabled", "fingerprintShield", "storageShield", "sensorShield", "behaviorNoise"]);
-const masterSwitchLabel = document.querySelector('.master-switch[data-setting="enabled"] > span');
+const reloadBanner = document.getElementById("reloadBanner");
+const reloadButton = document.getElementById("reloadButton");
+const siteToggleButton = document.querySelector(".switch[data-site-toggle='enabled']");
+const siteModuleButtons = [...document.querySelectorAll(".switch[data-site-module]")];
+const globalSettingButtons = [...document.querySelectorAll(".switch[data-global-setting]")];
 
 let settings = {};
 let context = {};
 let selectedProfile = null;
+// Local edits to the current site's modules / enabled state, not yet saved.
+let pendingSiteModules = null;
+let pendingSiteEnabled = null;
 
 init();
 
@@ -28,42 +33,90 @@ async function init() {
   hydrate(state);
 }
 
-switches.forEach((button) => {
+siteToggleButton?.addEventListener("click", () => {
+  if (!context.host) return;
+  const current = pendingSiteEnabled ?? Boolean(context.assignment?.enabled);
+  pendingSiteEnabled = !current;
+  render();
+});
+
+siteModuleButtons.forEach((button) => {
   button.addEventListener("click", async () => {
-    const key = button.dataset.setting;
+    if (!context.host) return;
+    const key = button.dataset.siteModule;
+    const modules = ensurePendingModules();
+    const previousModules = structuredClone(modules);
+    modules[key] = !modules[key];
+    render();
+    if (context.assignment) {
+      // Live-update existing assignment.
+      const result = await send({ type: "updateSiteModules", host: context.host, modules });
+      if (result?.ok) {
+        hydrate(result);
+      } else {
+        pendingSiteModules = previousModules;
+        render();
+        hostNote.textContent = result?.error || "Site module save failed";
+      }
+    }
+  });
+});
+
+globalSettingButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    const key = button.dataset.globalSetting;
+    const previousValue = settings[key];
     settings[key] = !settings[key];
     render();
     const state = await saveGlobal();
     if (state?.ok) {
       hydrate(state);
+    } else {
+      settings[key] = previousValue;
+      render();
+      hostNote.textContent = state?.error || "Global setting save failed";
     }
   });
 });
 
 profileSelect.addEventListener("change", () => {
-  selectedProfile = settings.profiles.find((profile) => profile.id === profileSelect.value) || settings.profiles[0];
+  selectedProfile = settings.profiles.find((p) => p.id === profileSelect.value) || settings.profiles[0];
   render();
 });
 
 applyButton.addEventListener("click", async () => {
   if (!context.host) return;
   if (context.excluded) {
-    hostNote.textContent = "Excluded: direct route / shields off. Remove the exclusion in Settings to apply a profile.";
+    hostNote.textContent = "Excluded: direct route / shields off. Remove the exclusion in Settings.";
     return;
   }
-  await saveGlobal();
+  // Tri-state resolution: explicit pending value wins; otherwise existing assignment;
+  // otherwise default to enabled for a brand-new assignment created by this click.
+  const enabled = pendingSiteEnabled !== null
+    ? pendingSiteEnabled
+    : context.assignment
+      ? Boolean(context.assignment.enabled)
+      : true;
+  const modules = pendingSiteModules || ensurePendingModules();
   const result = await send({
     type: "applySiteProfile",
     host: context.host,
     profileId: selectedProfile?.id,
-    enabled: true,
-    clearCookies: true
+    enabled,
+    modules,
+    clearCookies: false
   });
   if (result?.ok) {
-    if (result.cookiesCleared > 0) {
+    if (result.jarSaved || result.jarRestored) {
+      hostNote.textContent = `Cookie jar swap: saved ${result.jarSaved}, restored ${result.jarRestored}`;
+    } else if (result.cookiesCleared > 0) {
       hostNote.textContent = `Applied - ${result.cookiesCleared} cookie${result.cookiesCleared !== 1 ? "s" : ""} cleared`;
     }
+    pendingSiteEnabled = null;
+    pendingSiteModules = null;
     hydrate(result);
+  } else {
+    hostNote.textContent = result?.error || "Site profile apply failed";
   }
 });
 
@@ -71,21 +124,35 @@ resetButton.addEventListener("click", async () => {
   if (!context.host) return;
   const result = await send({ type: "resetSiteProfile", host: context.host });
   if (result?.ok) {
+    pendingSiteEnabled = null;
+    pendingSiteModules = null;
     hydrate(result);
   }
 });
 
-optionsButton.addEventListener("click", () => {
-  send({ type: "openOptions" });
+optionsButton.addEventListener("click", () => send({ type: "openOptions" }));
+reloadButton?.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+  if (tab?.id) chrome.tabs.reload(tab.id);
 });
+
+function ensurePendingModules() {
+  if (!pendingSiteModules) {
+    pendingSiteModules = structuredClone(
+      context.assignment?.modules
+      || context.effectiveModules
+      || { fingerprint: true, storage: false, sensors: true, behavior: false, piiShield: false, blockServiceWorkers: false,
+           cleanup: { recommendations: true, comments: true, metrics: true, overlays: true, sticky: false, motion: true } }
+    );
+  }
+  return pendingSiteModules;
+}
 
 function hydrate(state) {
   settings = state.settings;
   context = state.context || {};
   selectedProfile = context.currentProfile || settings.profiles[0];
-  if (state.version) {
-    versionTag.textContent = `v${state.version}`;
-  }
+  if (state.version) versionTag.textContent = `v${state.version}`;
   renderProfiles();
   render();
 }
@@ -123,16 +190,14 @@ function render() {
     hostNote.textContent = settings.applyShieldsGlobally ? "Global mode" : "Not assigned";
   }
 
+  reloadBanner.hidden = !context.reloadRequired;
+
   profileSelect.disabled = !hasSupportedPage;
   applyButton.disabled = !hasSupportedPage;
-  resetButton.disabled = !hasSupportedPage;
-  if (masterSwitchLabel) {
-    masterSwitchLabel.textContent = hasSupportedPage ? "Current Site Protection" : "Protection Unavailable";
-  }
+  resetButton.disabled = !hasSupportedPage || !context.assignment;
 
   proxyState.textContent = settings.enabled && settings.proxyEnabled
-    ? `${settings.proxyHost}:${settings.proxyPort}`
-    : "Disabled";
+    ? `${settings.proxyHost}:${settings.proxyPort}` : "Disabled";
 
   if (!settings.enabled || !settings.privacyControls) {
     webrtcState.textContent = "Default";
@@ -146,12 +211,28 @@ function render() {
 
   profileId.textContent = selectedProfile?.randomization?.profileId || "PROFILE --";
 
-  switches.forEach((button) => {
-    const active = Boolean(settings[button.dataset.setting]);
-    const unavailable = !hasSupportedPage && SITE_SCOPED_SETTINGS.has(button.dataset.setting);
+  // Site enable toggle.
+  const siteEnabledNow = pendingSiteEnabled ?? Boolean(context.assignment?.enabled);
+  if (siteToggleButton) {
+    siteToggleButton.disabled = !hasSupportedPage || context.excluded;
+    siteToggleButton.setAttribute("aria-pressed", String(siteEnabledNow));
+  }
+
+  // Per-site module switches.
+  const moduleSource = pendingSiteModules || context.assignment?.modules || context.effectiveModules || {};
+  siteModuleButtons.forEach((button) => {
+    const key = button.dataset.siteModule;
+    const unavailable = !hasSupportedPage || context.excluded;
     button.disabled = unavailable;
-    button.setAttribute("aria-pressed", String(unavailable ? false : active));
+    const value = unavailable ? false : Boolean(moduleSource[key]);
+    button.setAttribute("aria-pressed", String(value));
     button.title = unavailable ? "Unavailable on this page" : "";
+  });
+
+  // Global setting buttons.
+  globalSettingButtons.forEach((button) => {
+    const key = button.dataset.globalSetting;
+    button.setAttribute("aria-pressed", String(Boolean(settings[key])));
   });
 }
 
@@ -188,9 +269,6 @@ async function saveGlobal() {
 }
 
 async function send(message) {
-  try {
-    return await chrome.runtime.sendMessage(message);
-  } catch (error) {
-    return { ok: false, error: error.message };
-  }
+  try { return await chrome.runtime.sendMessage(message); }
+  catch (error) { return { ok: false, error: error.message }; }
 }

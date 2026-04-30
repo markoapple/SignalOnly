@@ -27,90 +27,42 @@
 
       <section class="banner" role="note">
         <p class="micro">SAFE BY DEFAULT</p>
-        <p>SignalOnly ships with auth and payment domains (Google, Apple, Microsoft, GitHub, Stripe, PayPal, ...) preloaded as editable exclusions. Exclusions bypass extension routing, request rules, page-world shields, and site cleanup where Chrome supports host scoping.</p>
+        <p>Auth and payment domains (Google, Apple, Microsoft, GitHub, Stripe, PayPal, ...) ship preloaded as editable exclusions. Browser-wide controls (proxy, WebRTC policy, Topics/FLEDGE, autofill, referrers) are global; per-site modules apply where Chrome offers host scoping.</p>
       </section>
 
       <section class="overview" aria-label="Current status">
-        <div>
-          <span>Active Site</span>
-          <b id="activeHost">No active tab</b>
-          <small id="activeHostNote"></small>
-        </div>
-        <div>
-          <span>SOCKS Proxy</span>
-          <b id="proxyStatus">Disabled</b>
-          <small id="proxyModeStatus"></small>
-        </div>
-        <div>
-          <span>Current Profile</span>
-          <b id="activeProfileName">Default</b>
-        </div>
-        <div>
-          <span>Site Profiles</span>
-          <b id="siteCount">000</b>
-        </div>
+        <div><span>Active Site</span><b id="activeHost">No active tab</b><small id="activeHostNote"></small></div>
+        <div><span>SOCKS Proxy</span><b id="proxyStatus">Disabled</b><small id="proxyModeStatus"></small></div>
+        <div><span>Current Profile</span><b id="activeProfileName">Default</b></div>
+        <div><span>Site Profiles</span><b id="siteCount">000</b></div>
       </section>
 
       <section class="sheet-grid">
         <section class="module span-2" aria-labelledby="networkHeading">
           <header class="module-head">
-            <div>
-              <p class="micro">01 / NETWORK</p>
-              <h2 id="networkHeading">Network</h2>
-            </div>
-            <button class="switch-control" type="button" data-setting="proxyEnabled" aria-pressed="false">
-              <span>Tor Browser SOCKS</span><i><b>ON</b><b>OFF</b></i>
-            </button>
+            <div><p class="micro">01 / NETWORK / GLOBAL</p><h2 id="networkHeading">Network</h2></div>
+            <button class="switch-control" type="button" data-setting="proxyEnabled" aria-pressed="false"><span>Tor Browser SOCKS</span><i><b>ON</b><b>OFF</b></i></button>
           </header>
           <div class="route-editor">
-            <label class="field">
-              <span>SOCKS Proxy Host</span>
-              <input id="proxyHost" type="text" spellcheck="false" value="127.0.0.1">
-            </label>
-            <label class="field short">
-              <span>Port</span>
-              <input id="proxyPort" type="number" min="1" max="65535" value="9150">
-            </label>
-            <label class="field short">
-              <span>WebRTC</span>
-              <select id="webRtcMode">
-                <option value="soft">Public IP Only</option>
-                <option value="strict">Strict (no non-proxied UDP)</option>
-                <option value="off">Default</option>
-              </select>
+            <label class="field"><span>SOCKS Proxy Host</span><input id="proxyHost" type="text" spellcheck="false" value="127.0.0.1"></label>
+            <label class="field short"><span>Port</span><input id="proxyPort" type="number" min="1" max="65535" value="9150"></label>
+            <label class="field short"><span>WebRTC</span>
+              <select id="webRtcMode"><option value="soft">Public IP Only</option><option value="strict">Strict (no non-proxied UDP)</option><option value="off">Default</option></select>
             </label>
             <button id="saveGlobalButton" class="button-primary" type="button">Save Settings</button>
           </div>
           <div class="row-list">
-            <div class="setting-row">
-              <div><b>WebRTC / DNS leak blocking</b><span>Hides the local interface IP. "Public IP Only" preserves WebRTC; "Strict" disables non-proxied UDP and pairs with Tor Browser's SOCKS proxy.</span></div>
-              <button class="switch-control small" type="button" data-setting="privacyControls" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Header normalization</b><span>Sets DNT, Sec-GPC, and Accept-Language to the active profile. Skips trusted auth and payment domains.</span></div>
-              <button class="switch-control small" type="button" data-setting="networkHeaders" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Spoof User-Agent header (advanced)</b><span>Risky. Google and many SSO providers refuse sign-in when the HTTP UA does not match the Chrome client hints. The page-world UA spoof is unaffected.</span></div>
-              <button class="switch-control small" type="button" data-setting="spoofUserAgentHeader" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Strip third-party cookies (advanced)</b><span>Removes the Cookie header from third-party requests. Will break SSO/OAuth on every site that doesn't have its identity provider in the trusted list.</span></div>
-              <button class="switch-control small" type="button" data-setting="thirdPartyIsolation" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Strip ETag / Last-Modified</b><span>Disrupts cache-based tracking on third-party requests.</span></div>
-              <button class="switch-control small" type="button" data-setting="blockTrackingHeaders" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
+            <div class="setting-row"><div><b>WebRTC / DNS leak blocking (global)</b><span>Browser-global. Public IP Only preserves WebRTC; Strict pairs with Tor Browser's SOCKS proxy.</span></div><button class="switch-control small" type="button" data-setting="privacyControls" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Header normalization</b><span>Per-assigned-site headers use that site's profile values; if Apply globally is on, the active profile is used elsewhere.</span></div><button class="switch-control small" type="button" data-setting="networkHeaders" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Spoof User-Agent header (advanced)</b><span>Risky. Many SSO providers refuse sign-in if HTTP UA mismatches client hints.</span></div><button class="switch-control small" type="button" data-setting="spoofUserAgentHeader" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Strip third-party cookies (global, advanced)</b><span>Will break SSO/OAuth on sites whose IdP isn't excluded.</span></div><button class="switch-control small" type="button" data-setting="thirdPartyIsolation" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Strip ETag / Last-Modified (global)</b><span>Disrupts cache-based tracking on third-party requests.</span></div><button class="switch-control small" type="button" data-setting="blockTrackingHeaders" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button></div>
           </div>
         </section>
 
         <section class="module" aria-labelledby="fingerprintHeading">
           <header class="module-head compact">
-            <div>
-              <p class="micro">02 / FINGERPRINT</p>
-              <h2 id="fingerprintHeading">Fingerprint</h2>
-            </div>
+            <div><p class="micro">02 / FINGERPRINT / DEFAULT</p><h2 id="fingerprintHeading">Fingerprint</h2></div>
             <button class="switch-control small" type="button" data-setting="fingerprintShield" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
           </header>
           <div class="metadata">
@@ -119,96 +71,59 @@
             <span>Screen</span><b id="profileScreen">--</b>
             <span>WebGL</span><b id="profileWebgl">--</b>
           </div>
-          <div class="setting-row dense">
-            <div><b>Apply globally</b><span>If off (recommended), fingerprint patches only run on sites with explicit assignments.</span></div>
-            <button class="switch-control small" type="button" data-setting="applyShieldsGlobally" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
-          </div>
+          <p class="section-note">Default for new site assignments. Each assigned site overrides per-site.</p>
+          <div class="setting-row dense"><div><b>Apply globally</b><span>Off (recommended) = shields run only on assigned sites.</span></div><button class="switch-control small" type="button" data-setting="applyShieldsGlobally" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button></div>
         </section>
 
         <section class="module" aria-labelledby="storageHeading">
           <header class="module-head compact">
-            <div>
-              <p class="micro">03 / STORAGE</p>
-              <h2 id="storageHeading">Storage</h2>
-            </div>
+            <div><p class="micro">03 / STORAGE / DEFAULT</p><h2 id="storageHeading">Storage</h2></div>
             <button class="switch-control small" type="button" data-setting="storageShield" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
           </header>
-          <p class="section-note">When enabled, localStorage / IndexedDB / Cache / BroadcastChannel are namespaced with a per-profile salt. Sites you assign profiles to will be signed out on toggle. Off by default.</p>
-          <div class="setting-row dense">
-            <div><b>Block Service Workers</b><span>Off by default. Gmail, Docs, Meet, and many PWAs depend on registering one.</span></div>
-            <button class="switch-control small" type="button" data-setting="blockServiceWorkers" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
-          </div>
+          <p class="section-note">Default for new site assignments. Per-site enable namespaces localStorage / IndexedDB / Cache / BroadcastChannel with profile salts.</p>
+          <div class="setting-row dense"><div><b>Block Service Workers (default)</b><span>Off by default. Many PWAs depend on registering one.</span></div><button class="switch-control small" type="button" data-setting="blockServiceWorkers" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button></div>
         </section>
 
         <section class="module" aria-labelledby="piiHeading">
           <header class="module-head compact">
-            <div>
-              <p class="micro">04 / PII SHIELD</p>
-              <h2 id="piiHeading">PII Shield</h2>
-            </div>
+            <div><p class="micro">04 / PII SHIELD / GLOBAL</p><h2 id="piiHeading">PII Shield</h2></div>
+            <button class="switch-control small" type="button" data-setting="piiShield" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
           </header>
+          <p class="section-note">Group switch. When enabled (or when any assigned site enables PII Shield), referrer trimming and autofill suppression apply browser-globally because Chrome exposes those preferences globally.</p>
           <div class="row-list flush">
-            <div class="setting-row">
-              <div><b>Autofill suppression</b><span>Tells Chrome to disable address and payment autofill.</span></div>
-              <button class="switch-control small" type="button" data-setting="blockAutofill" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Referrer trimming</b><span>Reduces cross-site origin disclosure. Some auth flows require referrers; verify before enabling.</span></div>
-              <button class="switch-control small" type="button" data-setting="blockReferrers" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Block Topics / FLEDGE / measurement</b><span>Disables Privacy Sandbox advertising APIs.</span></div>
-              <button class="switch-control small" type="button" data-setting="blockTopics" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Auto-clear cookies on profile switch</b><span>Automatically removes cookies when a site's profile is changed. Recommended for real isolation.</span></div>
-              <button class="switch-control small" type="button" data-setting="autoClearOnSwitch" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
-            </div>
-            <div class="setting-row">
-              <div><b>Cookie expiry cap</b><span>Caps first-party cookie lifetime on assigned sites. Prevents persistent tracking cookies from surviving indefinitely. Set to 0 to disable.</span></div>
-              <label class="field narrow inline"><input id="cookieExpiryCapDays" type="number" min="0" max="365" value="7"> <span>days</span></label>
-            </div>
+            <div class="setting-row"><div><b>Autofill suppression</b><span>Tells Chrome to disable address and payment autofill.</span></div><button class="switch-control small" type="button" data-setting="blockAutofill" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Referrer trimming</b><span>Some auth flows require referrers; verify before enabling.</span></div><button class="switch-control small" type="button" data-setting="blockReferrers" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Block Topics / FLEDGE / measurement (global)</b><span>Disables Privacy Sandbox advertising APIs.</span></div><button class="switch-control small" type="button" data-setting="blockTopics" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Auto-clear cookies on profile switch (default)</b><span>Per-profile policy clear-on-switch / session overrides.</span></div><button class="switch-control small" type="button" data-setting="autoClearOnSwitch" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button></div>
+            <div class="setting-row"><div><b>Cookie expiry cap</b><span>Caps first-party cookie lifetime on assigned sites. 0 disables.</span></div><label class="field narrow inline"><input id="cookieExpiryCapDays" type="number" min="0" max="365" value="7"> <span>days</span></label></div>
           </div>
         </section>
 
         <section class="module" aria-labelledby="sensorHeading">
           <header class="module-head compact">
-            <div>
-              <p class="micro">05 / SENSORS</p>
-              <h2 id="sensorHeading">Sensors</h2>
-            </div>
+            <div><p class="micro">05 / SENSORS / DEFAULT</p><h2 id="sensorHeading">Sensors</h2></div>
             <button class="switch-control small" type="button" data-setting="sensorShield" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
           </header>
-          <p class="section-note">Geolocation, battery, motion, orientation, and ambient sensors are blocked on assigned sites.</p>
+          <p class="section-note">Geolocation, battery, motion, orientation, ambient sensors blocked on assigned sites that opt in.</p>
         </section>
 
         <section class="module" aria-labelledby="behaviorHeading">
           <header class="module-head compact">
-            <div>
-              <p class="micro">06 / BEHAVIOR</p>
-              <h2 id="behaviorHeading">Behavior Noise</h2>
-            </div>
+            <div><p class="micro">06 / BEHAVIOR / DEFAULT</p><h2 id="behaviorHeading">Behavior Noise</h2></div>
             <button class="switch-control small" type="button" data-setting="behaviorNoise" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
           </header>
-          <p class="section-note">Adds small pointer-coordinate jitter. Timing APIs are left untouched to avoid breaking authentication, signed cookies, and time-based login flows.</p>
+          <p class="section-note">Pointer-coordinate jitter on assigned sites. Timing APIs untouched.</p>
         </section>
       </section>
 
       <section class="profile-system">
         <aside class="profile-index">
-          <header>
-            <p class="micro">07 / PROFILES</p>
-            <h2>Profiles</h2>
-          </header>
+          <header><p class="micro">07 / PROFILES</p><h2>Profiles</h2></header>
           <div class="profile-list" id="profileList"></div>
         </aside>
-
         <section class="profile-editor">
           <header class="editor-head">
-            <div>
-              <p class="micro">PROFILE RANDOMIZATION</p>
-              <h2 id="profileEditorTitle">Profile</h2>
-            </div>
+            <div><p class="micro">PROFILE RANDOMIZATION</p><h2 id="profileEditorTitle">Profile</h2></div>
             <div class="button-cluster">
               <button id="newProfileButton" type="button">New Profile</button>
               <button id="duplicateProfileButton" type="button">Duplicate Profile</button>
@@ -216,21 +131,15 @@
               <button id="deleteProfileButton" class="danger" type="button">Delete Profile</button>
             </div>
           </header>
-
           <div class="definition">
             <label class="field"><span>Name</span><input id="profileName" type="text" spellcheck="false"></label>
             <label class="field narrow"><span>Code</span><input id="profileCodeInput" type="text" spellcheck="false"></label>
             <label class="field narrow"><span>Accent</span><input id="profileAccent" type="color" value="#ff006e"></label>
             <label class="field narrow"><span>Cookie Policy</span>
-              <select id="profileCookiePolicy">
-                <option value="keep">Keep cookies</option>
-                <option value="session">Session only (clear on tab close)</option>
-                <option value="clear-on-switch">Clear on profile switch</option>
-              </select>
+              <select id="profileCookiePolicy"><option value="keep">Keep cookies</option><option value="session">Session only (clear on tab close)</option><option value="clear-on-switch">Clear on profile switch</option></select>
             </label>
             <button id="saveProfileButton" class="button-primary" type="button">Save Profile</button>
           </div>
-
           <div class="random-grid" aria-label="Profile randomized values">
             <div><span>Profile ID</span><b id="randomProfileId">--</b></div>
             <div><span>Seed</span><b id="randomSeed">--</b></div>
@@ -249,9 +158,8 @@
             <div><span>Cache Salt</span><b id="cacheSalt">--</b></div>
             <div><span>BroadcastChannel Salt</span><b id="channelSalt">--</b></div>
           </div>
-
           <div class="page-rules">
-            <p class="micro">SITE PAGE CLEANUP / OPTIONAL</p>
+            <p class="micro">DEFAULT SITE PAGE CLEANUP</p>
             <div class="cleanup-grid">
               <button class="module-switch" type="button" data-module="recommendations" aria-pressed="true">Recommendations</button>
               <button class="module-switch" type="button" data-module="comments" aria-pressed="true">Comments</button>
@@ -266,14 +174,11 @@
 
       <section class="site-system">
         <header class="editor-head">
-          <div>
-            <p class="micro">08 / SITE RULES</p>
-            <h2>Site Profiles</h2>
-          </div>
+          <div><p class="micro">08 / SITE RULES</p><h2>Site Profiles</h2></div>
           <div class="button-cluster">
-            <button id="applySiteButton" class="button-primary" type="button">Apply to Current Site</button>
-            <button id="disableSiteButton" type="button">Disable Current Profile</button>
-            <button id="resetSiteButton" type="button">Reset Current Site</button>
+            <button id="applySiteButton" class="button-primary" type="button">Apply to Selected Site</button>
+            <button id="disableSiteButton" type="button">Disable Selected Site</button>
+            <button id="resetSiteButton" type="button">Reset Selected Site</button>
             <button id="clearSiteCookiesButton" type="button">Clear Site Cookies</button>
           </div>
         </header>
@@ -281,16 +186,43 @@
           <label class="field"><span>Host</span><input id="siteHost" type="text" spellcheck="false" placeholder="example.com"></label>
           <label class="field"><span>Site Profile</span><select id="siteProfile"></select></label>
           <button id="siteEnabled" class="switch-control" type="button" aria-pressed="true"><span>Site Rule</span><i><b>ON</b><b>OFF</b></i></button>
+          <label class="field"><span>Cookie Policy (override)</span>
+            <select id="siteCookiePolicy"><option value="">From profile</option><option value="keep">Keep cookies</option><option value="session">Session only</option><option value="clear-on-switch">Clear on profile switch</option></select>
+          </label>
+        </div>
+        <p class="micro">PER-SITE MODULES</p>
+        <div class="site-modules" id="siteModulesEditor">
+          <button class="module-switch" type="button" data-site-module="fingerprint" aria-pressed="true">Fingerprint</button>
+          <button class="module-switch" type="button" data-site-module="storage" aria-pressed="false">Storage</button>
+          <button class="module-switch" type="button" data-site-module="sensors" aria-pressed="true">Sensors</button>
+          <button class="module-switch" type="button" data-site-module="behavior" aria-pressed="false">Behavior</button>
+          <button class="module-switch" type="button" data-site-module="piiShield" aria-pressed="false">PII Shield</button>
+          <button class="module-switch" type="button" data-site-module="blockServiceWorkers" aria-pressed="false">Block SW</button>
+        </div>
+        <p class="micro">PER-SITE PAGE CLEANUP</p>
+        <div class="site-modules" id="siteCleanupEditor">
+          <button class="module-switch" type="button" data-site-cleanup="recommendations" aria-pressed="true">Recommendations</button>
+          <button class="module-switch" type="button" data-site-cleanup="comments" aria-pressed="true">Comments</button>
+          <button class="module-switch" type="button" data-site-cleanup="metrics" aria-pressed="true">Metrics</button>
+          <button class="module-switch" type="button" data-site-cleanup="overlays" aria-pressed="true">Overlays</button>
+          <button class="module-switch" type="button" data-site-cleanup="sticky" aria-pressed="false">Sticky UI</button>
+          <button class="module-switch" type="button" data-site-cleanup="motion" aria-pressed="true">Motion</button>
         </div>
         <div class="site-table" id="siteTable"></div>
       </section>
 
+      <section class="jar-system">
+        <header class="editor-head">
+          <div><p class="micro">08B / COOKIE JARS</p><h2>Saved Cookie Jars</h2></div>
+          <div class="button-cluster"><button id="refreshJarsButton" type="button">Refresh</button></div>
+        </header>
+        <p class="section-note">Per {host, profile} cookie snapshots. Created on profile switch and on session-policy tab close. Restored when you switch back to that profile.</p>
+        <div class="jar-table" id="jarTable"></div>
+      </section>
+
       <section class="exclusion-system">
         <header class="editor-head">
-          <div>
-            <p class="micro">09 / EXCLUSIONS</p>
-            <h2>Excluded Hosts</h2>
-          </div>
+          <div><p class="micro">09 / EXCLUSIONS</p><h2>Excluded Hosts</h2></div>
           <div class="button-cluster">
             <button id="excludeCurrentSiteButton" type="button">Exclude Current Site</button>
             <button id="removeCurrentExclusionButton" type="button">Remove Current Site Exclusion</button>
@@ -298,19 +230,14 @@
             <button id="resetExclusionsButton" type="button">Restore Defaults</button>
           </div>
         </header>
-        <p class="section-note">Excluded hosts bypass extension routing, request rules, content shields, and site cleanup where Chrome allows host scoping. WebRTC and Chrome privacy preferences are browser-global, so exclusions do not change those global settings.</p>
-        <div class="exclusion-editor">
-          <label class="field"><span>Host</span><input id="exclusionInput" type="text" spellcheck="false" placeholder="accounts.example.com"></label>
-        </div>
+        <p class="section-note">Excluded hosts bypass extension routing, request rules, content shields, and site cleanup where Chrome allows host scoping. WebRTC and Chrome privacy preferences are browser-global.</p>
+        <div class="exclusion-editor"><label class="field"><span>Host</span><input id="exclusionInput" type="text" spellcheck="false" placeholder="accounts.example.com"></label></div>
         <div class="exclusion-list" id="exclusionList"></div>
       </section>
 
       <section class="config-system">
         <header class="editor-head">
-          <div>
-            <p class="micro">10 / CONFIG</p>
-            <h2>Export / Import</h2>
-          </div>
+          <div><p class="micro">10 / CONFIG</p><h2>Export / Import</h2></div>
           <div class="button-cluster">
             <button id="exportConfigButton" type="button">Export Config</button>
             <button id="importConfigButton" type="button">Import Config</button>

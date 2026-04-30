@@ -35,32 +35,48 @@
         </div>
       </section>
 
+      <div id="reloadBanner" class="reload-banner" hidden>
+        <b>Reload required</b>
+        <small>Some shield changes need a page reload to fully apply or revert.</small>
+        <button id="reloadButton" type="button">Reload</button>
+      </div>
+
       <label class="profile-row">
         <span>Site Profile</span>
         <select id="profileSelect"></select>
       </label>
 
-      <section class="switches" aria-label="Privacy modules">
-        <button class="switch master-switch" type="button" data-setting="enabled" aria-pressed="true" aria-label="Current site protection on/off">
+      <section class="switches" aria-label="Site privacy modules">
+        <button class="switch master-switch" type="button" data-site-toggle="enabled" aria-pressed="false" aria-label="Current site protection on/off">
           <span>Current Site Protection</span><i><b>ON</b><b>OFF</b></i>
         </button>
-        <button class="switch" type="button" data-setting="proxyEnabled" aria-pressed="false">
-          <span>SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
-        </button>
-        <button class="switch" type="button" data-setting="fingerprintShield" aria-pressed="false">
+        <button class="switch" type="button" data-site-module="fingerprint" aria-pressed="true">
           <span>Fingerprint</span><i><b>ON</b><b>OFF</b></i>
         </button>
-        <button class="switch" type="button" data-setting="storageShield" aria-pressed="false">
+        <button class="switch" type="button" data-site-module="storage" aria-pressed="false">
           <span>Storage</span><i><b>ON</b><b>OFF</b></i>
         </button>
-        <button class="switch" type="button" data-setting="sensorShield" aria-pressed="false">
+        <button class="switch" type="button" data-site-module="sensors" aria-pressed="true">
           <span>Sensors</span><i><b>ON</b><b>OFF</b></i>
         </button>
-        <button class="switch" type="button" data-setting="behaviorNoise" aria-pressed="false">
+        <button class="switch" type="button" data-site-module="behavior" aria-pressed="false">
           <span>Behavior</span><i><b>ON</b><b>OFF</b></i>
         </button>
-        <button class="switch" type="button" data-setting="thirdPartyIsolation" aria-pressed="false">
-          <span>Cookies</span><i><b>ON</b><b>OFF</b></i>
+        <button class="switch" type="button" data-site-module="piiShield" aria-pressed="false">
+          <span>PII Shield</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+      </section>
+
+      <section class="switches global-switches" aria-label="Global controls">
+        <p class="section-note">Browser-global (apply everywhere Chrome lets us)</p>
+        <button class="switch" type="button" data-global-setting="enabled" aria-pressed="true">
+          <span>Extension Master</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-global-setting="proxyEnabled" aria-pressed="false">
+          <span>SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-global-setting="thirdPartyIsolation" aria-pressed="false">
+          <span>3p Cookies (global)</span><i><b>ON</b><b>OFF</b></i>
         </button>
       </section>
 
