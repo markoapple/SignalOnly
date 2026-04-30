@@ -1,11 +1,14 @@
 :root {
-  --bg: #f1f0eb;
+  --base: #efeee9;
   --paper: #fffefa;
-  --ink: #050505;
-  --muted: #66635c;
-  --line: #050505;
-  --soft: #dedbd2;
+  --ink: #040404;
+  --muted: #656159;
+  --line: rgba(4, 4, 4, 0.92);
+  --hair: rgba(4, 4, 4, 0.22);
+  --soft: #dfddd5;
   --accent: #ff006e;
+  --warn: #b48a00;
+  --excluded: #656159;
 }
 
 * {
@@ -17,9 +20,9 @@ html,
 body {
   width: 392px;
   margin: 0;
-  background: var(--bg);
+  background: var(--base);
   color: var(--ink);
-  font-family: Inter, Geist, Helvetica, Arial, sans-serif;
+  font-family: Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 button,
@@ -30,7 +33,7 @@ select {
 .popup {
   width: 392px;
   padding: 18px;
-  background: var(--bg);
+  background: var(--base);
 }
 
 .top {
@@ -52,8 +55,9 @@ select {
 .subline,
 .meta,
 .status span,
+.status small,
 .profile-row span {
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
   text-transform: uppercase;
 }
 
@@ -88,8 +92,18 @@ select {
   background: var(--paper);
 }
 
-.status div:first-child {
+.status .status-host {
   grid-column: 1 / -1;
+}
+
+.status-host[data-state="active"] {
+  box-shadow: inset 4px 0 0 0 var(--accent);
+}
+.status-host[data-state="paused"] {
+  box-shadow: inset 4px 0 0 0 var(--warn);
+}
+.status-host[data-state="excluded"] {
+  box-shadow: inset 4px 0 0 0 var(--excluded);
 }
 
 .status span {
@@ -105,6 +119,15 @@ select {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
+}
+
+.status small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  white-space: normal;
 }
 
 .profile-row {
@@ -131,14 +154,22 @@ select {
 
 .switches {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 14px;
 }
 
+.master-switch {
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr 82px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .switch {
   display: grid;
-  grid-template-columns: 1fr 82px;
-  gap: 12px;
+  grid-template-columns: 1fr 70px;
+  gap: 8px;
   align-items: center;
   min-height: 44px;
   padding: 8px 10px;
@@ -151,7 +182,7 @@ select {
 }
 
 .switch > span {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 720;
 }
 
@@ -159,13 +190,13 @@ select {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  width: 82px;
-  height: 30px;
+  width: 70px;
+  height: 26px;
   border: 1px solid var(--line);
   background: var(--soft);
   font-style: normal;
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
-  font-size: 10px;
+  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-size: 9px;
   font-weight: 800;
 }
 
@@ -175,7 +206,7 @@ select {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 40px;
+  width: 34px;
   background: var(--accent);
   border-right: 1px solid var(--line);
   transition: transform 120ms ease;
@@ -189,7 +220,7 @@ select {
 }
 
 .switch[aria-pressed="false"] i::before {
-  transform: translateX(40px);
+  transform: translateX(34px);
   background: var(--paper);
   border-left: 1px solid var(--line);
   border-right: 0;

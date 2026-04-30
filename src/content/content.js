@@ -6,6 +6,8 @@ const INJECT_ATTR = "data-signalonly-fingerprint";
 let focusProfile = null;
 let observer = null;
 let scanTimer = 0;
+let pendingApply = null;
+let lastScanTime = 0;
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "signalonly:update") {
@@ -13,11 +15,24 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && pendingApply) {
+    pendingApply = null;
+    void loadAndApply();
+  }
+});
+
 void loadAndApply();
 
 async function loadAndApply() {
+  if (document.hidden) {
+    pendingApply = true;
+    return;
+  }
+
   const config = await getConfig();
-  if (!config?.ok || !config.enabled) {
+
+  if (!config?.ok || !config.enabled || !config.profile) {
     removeFocusSurface();
     return;
   }
@@ -47,7 +62,13 @@ async function getConfig() {
 
 function shouldInjectFingerprint(config) {
   const settings = config.settings || {};
-  return settings.fingerprintShield || settings.storageShield || settings.sensorShield || settings.piiShield;
+  return Boolean(
+    settings.fingerprintShield ||
+    settings.storageShield ||
+    settings.sensorShield ||
+    settings.behaviorNoise ||
+    settings.blockServiceWorkers
+  );
 }
 
 function injectFingerprint(config) {
@@ -91,6 +112,10 @@ function removeFocusSurface() {
     observer.disconnect();
     observer = null;
   }
+  if (scanTimer) {
+    window.clearTimeout(scanTimer);
+    scanTimer = 0;
+  }
   focusProfile = null;
 }
 
@@ -121,10 +146,15 @@ function installStyle(profile) {
       pointer-events: ${modules.sticky ? "none" : "auto"} !important;
     }
 
-    :root[${ROOT_ATTR}] * {
+    :root[${ROOT_ATTR}] [${ATTR}~="recommendations"] *,
+    :root[${ROOT_ATTR}] [${ATTR}~="overlays"] *,
+    :root[${ROOT_ATTR}] [${ATTR}~="comments"] *,
+    :root[${ROOT_ATTR}] [${ATTR}~="metrics"] * {
       animation-duration: ${modules.motion ? "0.001ms" : "initial"} !important;
       animation-iteration-count: ${modules.motion ? "1" : "initial"} !important;
       transition-duration: ${modules.motion ? "0.001ms" : "initial"} !important;
+    }
+    :root[${ROOT_ATTR}] {
       scroll-behavior: ${modules.motion ? "auto" : "smooth"} !important;
     }
   `;
@@ -135,14 +165,18 @@ function installStyle(profile) {
 }
 
 function scheduleScan() {
-  if (scanTimer) {
+  if (scanTimer || document.hidden) {
     return;
   }
 
+  const elapsed = Date.now() - lastScanTime;
+  const delay = elapsed < 300 ? 250 : 120;
+
   scanTimer = window.setTimeout(() => {
     scanTimer = 0;
+    lastScanTime = Date.now();
     scanPage();
-  }, 120);
+  }, delay);
 }
 
 function scanPage() {
@@ -151,7 +185,14 @@ function scanPage() {
   }
 
   const modules = focusProfile.modules || {};
-  document.querySelectorAll(`[${ATTR}]`).forEach((node) => node.removeAttribute(ATTR));
+
+  const tagged = document.querySelectorAll(`[${ATTR}]`);
+  tagged.forEach((node) => {
+    if (!node.isConnected) {
+      node.removeAttribute(ATTR);
+    }
+  });
+
   markKnownSiteSelectors(modules);
 
   const candidates = document.querySelectorAll("aside, nav, header, section, article, div, ul, ol, li, span, a, button");
@@ -162,6 +203,10 @@ function scanPage() {
     }
     inspected += 1;
     if (!(element instanceof HTMLElement) || shouldSkip(element)) {
+      continue;
+    }
+
+    if (element.hasAttribute(ATTR)) {
       continue;
     }
 
@@ -179,7 +224,6 @@ function markKnownSiteSelectors(modules) {
   if (modules.recommendations) {
     selectors.push(
       "ytd-watch-next-secondary-results-renderer",
-      "ytd-rich-grid-renderer",
       "ytd-reel-shelf-renderer",
       "ytd-merch-shelf-renderer",
       "#secondary",
@@ -192,15 +236,15 @@ function markKnownSiteSelectors(modules) {
   }
 
   if (modules.comments) {
-    selectors.push("ytd-comments", "#comments", "[data-testid='comment']", "[class*='comment' i]");
+    selectors.push("ytd-comments", "#comments", "[data-testid='comment']");
   }
 
   if (modules.metrics) {
-    selectors.push("[class*='engagement' i]", "[class*='stats' i]", "[aria-label*='like' i]", "[aria-label*='view' i]");
+    selectors.push("[class*='engagement' i]", "[class*='stats' i]");
   }
 
   if (modules.overlays) {
-    selectors.push("[role='dialog']", "[aria-modal='true']", "[class*='modal' i]", "[class*='popup' i]", "[class*='newsletter' i]", "[class*='subscribe' i]");
+    selectors.push("[role='dialog']", "[aria-modal='true']", "[class*='modal' i]", "[class*='popup' i]", "[class*='newsletter' i]");
   }
 
   if (host.includes("youtube.com") && modules.recommendations) {
@@ -208,19 +252,36 @@ function markKnownSiteSelectors(modules) {
   }
 
   selectors.forEach((selector) => {
-    document.querySelectorAll(selector).forEach((element) => addToken(element, tokenFromSelector(selector)));
+    let matches;
+    try {
+      matches = document.querySelectorAll(selector);
+    } catch {
+      return;
+    }
+    matches.forEach((element) => {
+      if (!isTooLarge(element)) {
+        addToken(element, tokenFromSelector(selector));
+      }
+    });
   });
 }
 
 function classifyElement(element, modules) {
-  const haystack = `${element.id} ${element.className} ${element.getAttribute("aria-label") || ""} ${element.getAttribute("data-testid") || ""} ${element.textContent?.slice(0, 180) || ""}`.toLowerCase();
+
+  const attrs = `${element.id} ${element.className} ${element.getAttribute("aria-label") || ""} ${element.getAttribute("data-testid") || ""}`.toLowerCase();
+
+  const isSmall = !element.children.length || (element.textContent || "").length < 500;
+  const haystack = isSmall
+    ? `${attrs} ${(element.textContent || "").slice(0, 120)}`
+    : attrs;
+
   const tokens = [];
 
-  if (modules.recommendations && /recommended|recommendation|suggested|suggestion|for you|trending|related|popular|because you|who to follow|shorts|reels|more like/i.test(haystack)) {
+  if (modules.recommendations && /recommended|recommendation|suggested|suggestion|for-you|trending|who-to-follow|shorts|reels/i.test(attrs)) {
     tokens.push("recommendations");
   }
 
-  if (modules.comments && /comments?|replies|discussion|respond|join the conversation/i.test(haystack)) {
+  if (modules.comments && /comments?|replies|discussion/i.test(haystack)) {
     tokens.push("comments");
   }
 
@@ -228,7 +289,7 @@ function classifyElement(element, modules) {
     tokens.push("metrics");
   }
 
-  if (modules.overlays && /modal|popup|newsletter|subscribe|sign up|cookie|consent|promo|promotion/i.test(haystack)) {
+  if (modules.overlays && /modal|popup|newsletter|subscribe|consent-banner|cookie-banner/i.test(attrs)) {
     tokens.push("overlays");
   }
 
@@ -236,7 +297,22 @@ function classifyElement(element, modules) {
     tokens.push("sticky");
   }
 
+  if (isTooLarge(element)) {
+    const safe = tokens.filter((t) => t !== "recommendations" && t !== "overlays");
+    return [...new Set(safe)];
+  }
+
   return [...new Set(tokens)];
+}
+
+function isTooLarge(element) {
+  try {
+    const rect = element.getBoundingClientRect();
+    const viewArea = window.innerWidth * window.innerHeight;
+    return rect.width * rect.height > viewArea * 0.4;
+  } catch {
+    return false;
+  }
 }
 
 function addToken(element, token) {

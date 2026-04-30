@@ -14,23 +14,24 @@
           <div class="subline">Privacy controls</div>
         </div>
         <div class="meta">
-          <span>BUILD 04.30</span>
+          <span id="versionTag">v--</span>
           <span id="profileId">PROFILE --</span>
         </div>
       </header>
 
       <section class="status">
-        <div>
+        <div class="status-host" data-state="default">
           <span>Active site</span>
           <b id="hostState">No site</b>
+          <small id="hostNote"></small>
         </div>
         <div>
           <span>SOCKS Proxy</span>
-          <b id="proxyState">127.0.0.1:9050</b>
+          <b id="proxyState">Disabled</b>
         </div>
         <div>
           <span>WebRTC</span>
-          <b id="webrtcState">Protected</b>
+          <b id="webrtcState">Default</b>
         </div>
       </section>
 
@@ -40,8 +41,11 @@
       </label>
 
       <section class="switches" aria-label="Privacy modules">
-        <button class="switch" type="button" data-setting="torEnabled" aria-pressed="false">
-          <span>Tor</span><i><b>ON</b><b>OFF</b></i>
+        <button class="switch master-switch" type="button" data-setting="enabled" aria-pressed="true" aria-label="Extension on/off">
+          <span>SignalOnly</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-setting="proxyEnabled" aria-pressed="false">
+          <span>SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
         </button>
         <button class="switch" type="button" data-setting="fingerprintShield" aria-pressed="false">
           <span>Fingerprint</span><i><b>ON</b><b>OFF</b></i>
@@ -49,14 +53,14 @@
         <button class="switch" type="button" data-setting="storageShield" aria-pressed="false">
           <span>Storage Isolation</span><i><b>ON</b><b>OFF</b></i>
         </button>
-        <button class="switch" type="button" data-setting="piiShield" aria-pressed="false">
-          <span>PII Shield</span><i><b>ON</b><b>OFF</b></i>
-        </button>
         <button class="switch" type="button" data-setting="sensorShield" aria-pressed="false">
           <span>Sensors</span><i><b>ON</b><b>OFF</b></i>
         </button>
         <button class="switch" type="button" data-setting="behaviorNoise" aria-pressed="false">
           <span>Behavior Noise</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-setting="thirdPartyIsolation" aria-pressed="false">
+          <span>3P Cookie Strip</span><i><b>ON</b><b>OFF</b></i>
         </button>
       </section>
 

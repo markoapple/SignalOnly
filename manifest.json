@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "SignalOnly Privacy Surface",
+  "name": "SignalOnly",
   "short_name": "SignalOnly",
-  "version": "0.4.0",
-  "description": "A near-future browser control surface for Tor routing, leak blocking, fingerprint reduction, storage isolation, PII shielding, and site profiles.",
+  "version": "0.5.0",
+  "description": "Route Chrome through a SOCKS proxy, plug WebRTC and DNS leaks, and randomize the obvious fingerprint surfaces. Per-site profiles, all local.",
   "minimum_chrome_version": "120",
   "permissions": [
+    "cookies",
     "declarativeNetRequest",
     "privacy",
     "proxy",
@@ -20,7 +21,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "SIGNALONLY",
+    "default_title": "SignalOnly",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "assets/icon-16.png",

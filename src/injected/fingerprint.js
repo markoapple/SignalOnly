@@ -1,3 +1,5 @@
+
+
 (() => {
   const source = document.currentScript;
   let config = {};
@@ -9,32 +11,50 @@
 
   const settings = config.settings || {};
   const profile = config.profile || {};
+  if (!profile || !profile.seedHex) {
+    return;
+  }
+
   const rng = mulberry32(hashString(profile.behaviorJitterSeed || profile.seedHex || "1"));
-  let recentInputUntil = 0;
 
   if (settings.fingerprintShield) {
     patchNavigator(profile);
+    patchUserAgentData(profile);
     patchScreen(profile.screen || {});
     patchTimezone(profile);
     patchCanvas(profile);
     patchWebGL(profile);
     patchAudio(profile);
+    patchNetworkInfo();
+    patchMediaDevices(profile);
+    patchSpeechVoices(profile);
+    patchFontEnumeration(profile);
+    patchPerformanceEntries();
+    patchPlugins();
+    patchScreenOrientation(profile);
+    patchNotificationPermission();
+    patchPermissionsQuery();
+    patchClientRects(profile);
+    patchMathPrecision();
+    clearWindowName();
+    patchDocumentReferrer();
   }
 
   if (settings.storageShield) {
-    patchStorage(profile);
+    patchStorageNamespace(profile);
+  }
+
+  if (settings.blockServiceWorkers) {
+    blockServiceWorkers();
   }
 
   if (settings.sensorShield) {
     patchSensors();
   }
 
-  if (settings.piiShield) {
-    patchPIIReads();
-  }
-
   if (settings.behaviorNoise) {
-    patchBehavior(profile);
+
+    patchPointerJitter(rng);
   }
 
   function patchNavigator(model) {
@@ -43,11 +63,56 @@
     defineGetter(nav, "appVersion", () => String(model.userAgent || "").replace(/^Mozilla\//, ""));
     defineGetter(nav, "platform", () => model.platform);
     defineGetter(nav, "language", () => model.language);
-    defineGetter(nav, "languages", () => [...(model.languages || ["en-US", "en"])]);
+    defineGetter(nav, "languages", () => Object.freeze([...(model.languages || ["en-US", "en"])]));
     defineGetter(nav, "hardwareConcurrency", () => model.hardwareConcurrency || 4);
     defineGetter(nav, "deviceMemory", () => model.deviceMemory || 4);
     defineGetter(nav, "maxTouchPoints", () => model.maxTouchPoints || 0);
-    defineGetter(nav, "webdriver", () => undefined);
+    defineGetter(nav, "webdriver", () => false);
+  }
+
+  function patchUserAgentData(model) {
+    if (!navigator.userAgentData) {
+      return;
+    }
+    const major = String(model.browserMajorVersion || "140");
+    const platformBrand = model.uaPlatformBrand || "Windows";
+    const brands = Object.freeze([
+      { brand: "Chromium", version: major },
+      { brand: "Google Chrome", version: major },
+      { brand: "Not_A Brand", version: "8" }
+    ]);
+    const fullVersion = `${major}.0.0.0`;
+    const high = {
+      architecture: platformBrand === "macOS" ? "arm" : "x86",
+      bitness: "64",
+      brands,
+      fullVersionList: brands.map((entry) => ({ ...entry, version: fullVersion })),
+      mobile: false,
+      model: "",
+      platform: platformBrand,
+      platformVersion: platformBrand === "macOS" ? "14.0.0" : platformBrand === "Windows" ? "10.0.0" : "6.6.0",
+      uaFullVersion: fullVersion,
+      wow64: false
+    };
+
+    try {
+      const proto = Object.getPrototypeOf(navigator.userAgentData);
+      defineGetter(proto, "brands", () => brands);
+      defineGetter(proto, "mobile", () => false);
+      defineGetter(proto, "platform", () => platformBrand);
+      proto.getHighEntropyValues = function patchedGetHighEntropyValues(hints) {
+        const requested = Array.isArray(hints) ? hints : [];
+        const result = { brands, mobile: false, platform: platformBrand };
+        for (const hint of requested) {
+          if (hint in high) {
+            result[hint] = high[hint];
+          }
+        }
+        return Promise.resolve(result);
+      };
+    } catch {
+
+    }
   }
 
   function patchScreen(model) {
@@ -62,6 +127,10 @@
   }
 
   function patchTimezone(model) {
+    if (!model.timezone) {
+      return;
+    }
+
     const nativeOffset = Date.prototype.getTimezoneOffset;
     Object.defineProperty(Date.prototype, "getTimezoneOffset", {
       value() {
@@ -71,13 +140,26 @@
       writable: true
     });
 
-    const NativeDateTimeFormat = Intl.DateTimeFormat;
-    function PatchedDateTimeFormat(locales, options) {
-      return new NativeDateTimeFormat(locales, { timeZone: model.timezone || "UTC", ...(options || {}) });
+    const NativeDTF = Intl.DateTimeFormat;
+    function PatchedDTF(locales, options) {
+      const merged = { timeZone: model.timezone, ...(options || {}) };
+      if (new.target) {
+        return Reflect.construct(NativeDTF, [locales, merged], new.target);
+      }
+      return new NativeDTF(locales, merged);
     }
-    PatchedDateTimeFormat.prototype = NativeDateTimeFormat.prototype;
-    Object.setPrototypeOf(PatchedDateTimeFormat, NativeDateTimeFormat);
-    Intl.DateTimeFormat = PatchedDateTimeFormat;
+    PatchedDTF.prototype = NativeDTF.prototype;
+    PatchedDTF.supportedLocalesOf = NativeDTF.supportedLocalesOf.bind(NativeDTF);
+
+    try {
+      Object.defineProperty(Intl, "DateTimeFormat", {
+        value: PatchedDTF,
+        configurable: true,
+        writable: true
+      });
+    } catch {
+
+    }
   }
 
   function patchCanvas(model) {
@@ -96,29 +178,80 @@
     };
 
     HTMLCanvasElement.prototype.toBlob = function patchedToBlob(callback, ...args) {
-      return withCanvasNoise(this, noise, () => nativeToBlob.call(this, callback, ...args), nativeGetImageData);
+
+      return withCanvasNoiseAsync(this, noise, callback, args, nativeToBlob, nativeGetImageData);
     };
   }
 
   function patchWebGL(model) {
-    const patch = (proto) => {
-      if (!proto?.getParameter) {
-        return;
-      }
-      const nativeGetParameter = proto.getParameter;
-      proto.getParameter = function patchedGetParameter(parameter) {
-        if (parameter === 37445) {
-          return model.webglVendor || "Google Inc.";
-        }
-        if (parameter === 37446) {
-          return model.webglRenderer || "ANGLE";
-        }
-        if (parameter === 3379) {
-          return 8192;
-        }
-        return nativeGetParameter.call(this, parameter);
-      };
+
+    const paramOverrides = {
+      37445: model.webglVendor || "Google Inc.",
+      37446: model.webglRenderer || "ANGLE",
+      3379:  8192,
+      3386:  [16384, 16384],
+      34076: 16384,
+      34024: 16384,
+      34930: 16,
+      35660: 16,
+      35661: 32,
+      36348: 1024,
+      36349: 512,
+      36347: 16,
+      7936:  "WebKit",
+      7937:  "WebKit WebGL",
+      7938:  "WebGL 1.0 (OpenGL ES 2.0 Chromium)",
+      35724: "WebGL GLSL ES 1.0 (OpenGL ES GLSL ES 1.0 Chromium)",
+      3408:  8,
+      3411:  8,
+      3412:  24,
+      3413:  8,
+      3414:  1
     };
+
+    const normalizedExtensions = [
+      "ANGLE_instanced_arrays", "EXT_blend_minmax", "EXT_color_buffer_half_float",
+      "EXT_float_blend", "EXT_frag_depth", "EXT_shader_texture_lod",
+      "EXT_texture_filter_anisotropic", "EXT_sRGB", "OES_element_index_uint",
+      "OES_standard_derivatives", "OES_texture_float", "OES_texture_float_linear",
+      "OES_texture_half_float", "OES_texture_half_float_linear", "OES_vertex_array_object",
+      "WEBGL_color_buffer_float", "WEBGL_compressed_texture_s3tc",
+      "WEBGL_depth_texture", "WEBGL_draw_buffers", "WEBGL_lose_context"
+    ];
+
+    const patch = (proto) => {
+      if (!proto) return;
+
+      if (proto.getParameter) {
+        const nativeGetParameter = proto.getParameter;
+        proto.getParameter = function patchedGetParameter(param) {
+          if (param in paramOverrides) {
+            const val = paramOverrides[param];
+            return Array.isArray(val) ? new Int32Array(val) : val;
+          }
+
+          if (param === 33901 || param === 33902) {
+            return new Float32Array([1, 1024]);
+          }
+          return nativeGetParameter.call(this, param);
+        };
+      }
+
+      if (proto.getSupportedExtensions) {
+        proto.getSupportedExtensions = () => [...normalizedExtensions];
+      }
+
+      if (proto.getExtension) {
+        const nativeGetExtension = proto.getExtension;
+        proto.getExtension = function patchedGetExtension(name) {
+
+          if (name === "WEBGL_debug_renderer_info") return null;
+          if (!normalizedExtensions.includes(name)) return null;
+          return nativeGetExtension.call(this, name);
+        };
+      }
+    };
+
     patch(window.WebGLRenderingContext?.prototype);
     patch(window.WebGL2RenderingContext?.prototype);
   }
@@ -135,17 +268,38 @@
         }
       };
     }
+
+    if (window.AudioContext || window.webkitAudioContext) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      try {
+        defineGetter(Ctx.prototype, "sampleRate", () => 44100);
+        const destProto = Object.getPrototypeOf(
+          new (window.OfflineAudioContext || function(){})(1, 1, 44100).destination || {}
+        );
+        if (destProto) {
+          defineGetter(destProto, "maxChannelCount", () => 2);
+        }
+      } catch {
+
+      }
+    }
   }
 
-  function patchStorage(model) {
-    const storageSalt = String(model.salts?.storage || model.seedHex || Date.now());
-    const indexedDbSalt = String(model.salts?.indexedDB || storageSalt);
-    const cacheSalt = String(model.salts?.cache || storageSalt);
-    const channelSalt = String(model.salts?.broadcastChannel || storageSalt);
-    const local = new MemoryStorage();
-    const sessionStore = new MemoryStorage();
-    defineGetter(window, "localStorage", () => local);
-    defineGetter(window, "sessionStorage", () => sessionStore);
+  function patchStorageNamespace(model) {
+
+    const storageSalt = `so_${String(model.salts?.storage || model.seedHex || "")}_`;
+    const indexedDbSalt = String(model.salts?.indexedDB || model.salts?.storage || model.seedHex || "");
+    const cacheSalt = String(model.salts?.cache || model.salts?.storage || model.seedHex || "");
+    const channelSalt = String(model.salts?.broadcastChannel || model.salts?.storage || model.seedHex || "");
+
+    const realLocal = safeAccess(() => window.localStorage);
+    const realSession = safeAccess(() => window.sessionStorage);
+    if (realLocal) {
+      defineGetter(window, "localStorage", () => buildPrefixedStorage(realLocal, storageSalt));
+    }
+    if (realSession) {
+      defineGetter(window, "sessionStorage", () => buildPrefixedStorage(realSession, storageSalt));
+    }
 
     if (window.indexedDB) {
       const nativeIndexedDB = window.indexedDB;
@@ -162,10 +316,6 @@
         }
       });
       defineGetter(window, "indexedDB", () => proxy);
-    }
-
-    if (navigator.serviceWorker?.register) {
-      navigator.serviceWorker.register = () => Promise.reject(new DOMException("Service worker registration blocked", "SecurityError"));
     }
 
     if (window.caches) {
@@ -186,18 +336,162 @@
     }
   }
 
-  function patchBehavior(model) {
-    const jitter = ((hashString(model.behaviorJitterSeed || "behavior") % 6) + 1) / 2;
-    const nativePerfNow = performance.now.bind(performance);
-    performance.now = () => nativePerfNow() + ((rng() - 0.5) * jitter);
+  function blockServiceWorkers() {
+    if (navigator.serviceWorker?.register) {
+      const reject = () => Promise.reject(new DOMException("Service worker registration blocked by SignalOnly", "SecurityError"));
+      try {
+        navigator.serviceWorker.register = reject;
+      } catch {
 
-    const nativeDateNow = Date.now;
-    Date.now = () => nativeDateNow() + Math.round((rng() - 0.5) * jitter);
+      }
+    }
+  }
 
-    patchEventCoordinate(MouseEvent.prototype, "clientX", jitter);
-    patchEventCoordinate(MouseEvent.prototype, "clientY", jitter);
-    patchEventCoordinate(MouseEvent.prototype, "screenX", jitter);
-    patchEventCoordinate(MouseEvent.prototype, "screenY", jitter);
+  function buildPrefixedStorage(realStorage, prefix) {
+    const handler = {
+      length: 0,
+      key(index) {
+        let position = 0;
+        for (let inner = 0; inner < realStorage.length; inner += 1) {
+          const stored = realStorage.key(inner);
+          if (!stored || !stored.startsWith(prefix)) {
+            continue;
+          }
+          if (position === index) {
+            return stored.slice(prefix.length);
+          }
+          position += 1;
+        }
+        return null;
+      },
+      getItem(key) {
+        return realStorage.getItem(prefix + String(key));
+      },
+      setItem(key, value) {
+        realStorage.setItem(prefix + String(key), String(value));
+      },
+      removeItem(key) {
+        realStorage.removeItem(prefix + String(key));
+      },
+      clear() {
+        const targets = [];
+        for (let index = 0; index < realStorage.length; index += 1) {
+          const stored = realStorage.key(index);
+          if (stored && stored.startsWith(prefix)) {
+            targets.push(stored);
+          }
+        }
+        targets.forEach((stored) => realStorage.removeItem(stored));
+      }
+    };
+
+    function getPrefixedKeys() {
+      const keys = [];
+      for (let index = 0; index < realStorage.length; index += 1) {
+        const stored = realStorage.key(index);
+        if (stored && stored.startsWith(prefix)) {
+          keys.push(stored.slice(prefix.length));
+        }
+      }
+      return keys;
+    }
+
+    return new Proxy(handler, {
+      get(target, prop) {
+        if (prop === "length") {
+          return getPrefixedKeys().length;
+        }
+        if (prop === Symbol.iterator) {
+          return function* () { yield* getPrefixedKeys(); };
+        }
+        if (prop in target) {
+          const value = target[prop];
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+        return target.getItem(prop);
+      },
+      set(target, prop, value) {
+        if (prop === "length") {
+          return true;
+        }
+        target.setItem(prop, value);
+        return true;
+      },
+      deleteProperty(target, prop) {
+        target.removeItem(prop);
+        return true;
+      },
+      has(target, prop) {
+        if (prop in target) return true;
+        return target.getItem(prop) !== null;
+      },
+      ownKeys() {
+        return getPrefixedKeys();
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        const value = target.getItem(prop);
+        if (value !== null) {
+          return { value, writable: true, enumerable: true, configurable: true };
+        }
+        return undefined;
+      }
+    });
+  }
+
+  function patchPointerJitter(rng) {
+
+    patchEventCoordinate(MouseEvent.prototype, "clientX", rng);
+    patchEventCoordinate(MouseEvent.prototype, "clientY", rng);
+    patchEventCoordinate(MouseEvent.prototype, "screenX", rng);
+    patchEventCoordinate(MouseEvent.prototype, "screenY", rng);
+  }
+
+  function patchClientRects(model) {
+
+    const noiseSeed = hashString(model.canvasNoiseSeed || model.seedHex || "rects");
+    const noiseAmount = 0.001 + (noiseSeed % 100) / 100000;
+
+    function noiseRect(rect) {
+      const s = noiseSeed;
+      return new DOMRect(
+        rect.x + ((hashString(String(s + rect.x)) % 200) - 100) * noiseAmount,
+        rect.y + ((hashString(String(s + rect.y)) % 200) - 100) * noiseAmount,
+        rect.width + ((hashString(String(s + rect.width)) % 200) - 100) * noiseAmount,
+        rect.height + ((hashString(String(s + rect.height)) % 200) - 100) * noiseAmount
+      );
+    }
+
+    const nativeGetBCR = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function patchedGetBCR() {
+      return noiseRect(nativeGetBCR.call(this));
+    };
+
+    const nativeGetCR = Element.prototype.getClientRects;
+    Element.prototype.getClientRects = function patchedGetCR() {
+      const rects = nativeGetCR.call(this);
+      const result = [];
+      for (let i = 0; i < rects.length; i++) {
+        result.push(noiseRect(rects[i]));
+      }
+
+      result.item = (index) => result[index] || null;
+      return result;
+    };
+  }
+
+  function patchMathPrecision() {
+
+    const fns = ["tan", "sinh", "cosh", "expm1", "atanh", "cbrt", "log1p"];
+    for (const name of fns) {
+      if (typeof Math[name] !== "function") continue;
+      const native = Math[name];
+      Math[name] = function patchedMath(x) {
+        const result = native(x);
+
+        if (!Number.isFinite(result) || Number.isInteger(result)) return result;
+        return Number(result.toPrecision(15));
+      };
+    }
   }
 
   function patchSensors() {
@@ -222,36 +516,219 @@
     });
   }
 
-  function patchPIIReads() {
-    const sensitive = /(email|phone|mobile|tel|address|shipping|billing|card|credit|payment|recovery|oauth|sso|username|identity)/i;
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
-    if (!descriptor?.get || !descriptor?.set) {
-      return;
+  function patchNetworkInfo() {
+
+    if (navigator.connection) {
+      const fakeConnection = {
+        effectiveType: "4g",
+        downlink: 10,
+        rtt: 50,
+        saveData: false,
+        type: "wifi",
+        downlinkMax: Infinity,
+        onchange: null,
+        ontypechange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true
+      };
+      try {
+        defineGetter(Navigator.prototype, "connection", () => fakeConnection);
+      } catch {
+
+      }
     }
+  }
 
-    ["input", "change", "keydown", "paste", "pointerdown", "submit"].forEach((type) => {
-      document.addEventListener(type, (event) => {
-        if (event.isTrusted) {
-          recentInputUntil = Date.now() + 1800;
-        }
-      }, true);
-    });
+  function patchMediaDevices(model) {
 
-    Object.defineProperty(HTMLInputElement.prototype, "value", {
-      get() {
-        const value = descriptor.get.call(this);
-        const key = `${this.name || ""} ${this.id || ""} ${this.autocomplete || ""} ${this.placeholder || ""} ${this.type || ""}`;
-        const activeRead = document.activeElement === this || Date.now() < recentInputUntil;
-        if (sensitive.test(key) && !activeRead && looksLikePII(value)) {
-          return "";
+    if (navigator.mediaDevices?.enumerateDevices) {
+      const idSeed = model.seedHex || "media";
+      const fakeDevices = [
+        { deviceId: hexSlice(idSeed, 0, 16), kind: "audioinput", label: "", groupId: hexSlice(idSeed, 16, 32) },
+        { deviceId: hexSlice(idSeed, 4, 20), kind: "videoinput", label: "", groupId: hexSlice(idSeed, 20, 36) },
+        { deviceId: hexSlice(idSeed, 8, 24), kind: "audiooutput", label: "", groupId: hexSlice(idSeed, 24, 40) }
+      ].map((d) => ({
+        ...d,
+        toJSON() { return { ...d, toJSON: undefined }; }
+      }));
+      try {
+        navigator.mediaDevices.enumerateDevices = () => Promise.resolve(fakeDevices);
+      } catch {
+
+      }
+    }
+  }
+
+  function patchSpeechVoices(model) {
+
+    if (window.speechSynthesis?.getVoices) {
+      const fakeVoices = [
+        makeFakeVoice("Google US English", "en-US", true),
+        makeFakeVoice("Google UK English Female", "en-GB", false)
+      ];
+      try {
+        speechSynthesis.getVoices = () => fakeVoices;
+        const nativeAddListener = speechSynthesis.addEventListener;
+        speechSynthesis.addEventListener = function(type, ...args) {
+          if (type === "voiceschanged") {
+            try { args[0]?.(); } catch {}
+            return;
+          }
+          return nativeAddListener.call(this, type, ...args);
+        };
+      } catch {
+
+      }
+    }
+  }
+
+  function makeFakeVoice(name, lang, isDefault) {
+    return {
+      default: isDefault,
+      lang,
+      localService: true,
+      name,
+      voiceURI: name
+    };
+  }
+
+  function patchFontEnumeration(model) {
+
+    if (document.fonts?.check) {
+      try {
+        document.fonts.check = () => true;
+      } catch {
+
+      }
+    }
+  }
+
+  function patchPerformanceEntries() {
+
+    const trackerPatterns = [
+      "google-analytics", "googletagmanager", "doubleclick",
+      "facebook.net", "hotjar", "fullstory", "clarity.ms",
+      "segment.io", "amplitude", "mixpanel", "sentry",
+      "datadoghq", "newrelic", "nr-data.net"
+    ];
+    function isTrackerEntry(entry) {
+      const name = (entry.name || "").toLowerCase();
+      return trackerPatterns.some((pattern) => name.includes(pattern));
+    }
+    function filterEntries(entries) {
+      return entries.filter((e) => !isTrackerEntry(e));
+    }
+    if (Performance.prototype.getEntries) {
+      const nativeGetEntries = Performance.prototype.getEntries;
+      Performance.prototype.getEntries = function patchedGetEntries() {
+        return filterEntries(nativeGetEntries.call(this));
+      };
+    }
+    if (Performance.prototype.getEntriesByType) {
+      const nativeByType = Performance.prototype.getEntriesByType;
+      Performance.prototype.getEntriesByType = function patchedGetEntriesByType(...args) {
+        return filterEntries(nativeByType.apply(this, args));
+      };
+    }
+    if (Performance.prototype.getEntriesByName) {
+      const nativeByName = Performance.prototype.getEntriesByName;
+      Performance.prototype.getEntriesByName = function patchedGetEntriesByName(...args) {
+        return filterEntries(nativeByName.apply(this, args));
+      };
+    }
+  }
+
+  function patchPlugins() {
+
+    try {
+      defineGetter(Navigator.prototype, "plugins", () => {
+        return Object.create(PluginArray.prototype, { length: { value: 0 } });
+      });
+      defineGetter(Navigator.prototype, "mimeTypes", () => {
+        return Object.create(MimeTypeArray.prototype, { length: { value: 0 } });
+      });
+    } catch {
+
+    }
+  }
+
+  function patchScreenOrientation(model) {
+
+    if (screen.orientation) {
+      try {
+        defineGetter(screen.orientation, "type", () => "landscape-primary");
+        defineGetter(screen.orientation, "angle", () => 0);
+      } catch {
+
+      }
+    }
+  }
+
+  function patchNotificationPermission() {
+
+    if (window.Notification) {
+      try {
+        defineGetter(Notification, "permission", () => "default");
+      } catch {
+
+      }
+    }
+  }
+
+  function patchPermissionsQuery() {
+
+    if (navigator.permissions?.query) {
+      const nativeQuery = navigator.permissions.query.bind(navigator.permissions);
+      navigator.permissions.query = (desc) => {
+        const sensitive = ["notifications", "geolocation", "camera", "microphone", "midi", "clipboard-read", "clipboard-write"];
+        if (desc?.name && sensitive.includes(desc.name)) {
+          return Promise.resolve({
+            state: "prompt",
+            name: desc.name,
+            onchange: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => true
+          });
         }
-        return value;
-      },
-      set(value) {
-        return descriptor.set.call(this, value);
-      },
-      configurable: true
-    });
+        return nativeQuery(desc);
+      };
+    }
+  }
+
+  function clearWindowName() {
+
+    try {
+      if (window.name && window.name.length > 0) {
+        window.name = "";
+      }
+    } catch {
+
+    }
+  }
+
+  function patchDocumentReferrer() {
+
+    try {
+      const real = document.referrer;
+      if (real) {
+        const parsed = new URL(real);
+        const spoofed = parsed.origin === location.origin ? real : parsed.origin + "/";
+        Object.defineProperty(Document.prototype, "referrer", {
+          get() { return spoofed; },
+          configurable: true
+        });
+      }
+    } catch {
+
+    }
+  }
+
+  function hexSlice(hex, start, end) {
+    const s = String(hex || "");
+    const repeated = s + s + s;
+    return repeated.slice(start, end);
   }
 
   function defineGetter(target, prop, getter) {
@@ -263,14 +740,18 @@
     return true;
   }
 
-  function patchEventCoordinate(proto, prop, jitter) {
+  function patchEventCoordinate(proto, prop, rng) {
     const descriptor = Object.getOwnPropertyDescriptor(proto, prop);
     if (!descriptor?.get) {
       return;
     }
+
     Object.defineProperty(proto, prop, {
       get() {
-        return Math.round(descriptor.get.call(this) + ((rng() - 0.5) * jitter));
+        const base = descriptor.get.call(this);
+        const eventSeed = (this.timeStamp || 0) + base;
+        const noise = ((hashString(String(eventSeed)) % 200) - 100) / 200;
+        return Math.round(base + noise);
       },
       configurable: true
     });
@@ -305,12 +786,37 @@
     }
   }
 
-  function looksLikePII(value) {
-    return /([^\s@]+@[^\s@]+\.[^\s@]+)|(\+?\d[\d\s().-]{7,}\d)|(\b(?:\d[ -]*?){13,19}\b)/.test(String(value || ""));
+  function withCanvasNoiseAsync(canvas, noise, callback, blobArgs, nativeToBlob, nativeGetImageData) {
+
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context || !canvas.width || !canvas.height) {
+      return nativeToBlob.call(canvas, callback, ...blobArgs);
+    }
+    const width = Math.min(16, canvas.width);
+    const height = Math.min(16, canvas.height);
+    try {
+      const original = nativeGetImageData.call(context, 0, 0, width, height);
+      const changed = noisyImageData(original, noise);
+      context.putImageData(changed, 0, 0);
+      return nativeToBlob.call(canvas, (blob) => {
+        context.putImageData(original, 0, 0);
+        if (callback) callback(blob);
+      }, ...blobArgs);
+    } catch {
+      return nativeToBlob.call(canvas, callback, ...blobArgs);
+    }
   }
 
   function clampByte(value) {
     return Math.max(0, Math.min(255, value));
+  }
+
+  function safeAccess(getter) {
+    try {
+      return getter();
+    } catch {
+      return null;
+    }
   }
 
   function hashString(input) {
@@ -330,30 +836,5 @@
       value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
       return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
     };
-  }
-
-  class MemoryStorage {
-    constructor() {
-      this.map = new Map();
-    }
-    get length() {
-      return this.map.size;
-    }
-    key(index) {
-      return Array.from(this.map.keys())[index] || null;
-    }
-    getItem(key) {
-      const value = this.map.get(String(key));
-      return value === undefined ? null : value;
-    }
-    setItem(key, value) {
-      this.map.set(String(key), String(value));
-    }
-    removeItem(key) {
-      this.map.delete(String(key));
-    }
-    clear() {
-      this.map.clear();
-    }
   }
 })();

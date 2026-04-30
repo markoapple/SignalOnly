@@ -4,7 +4,7 @@ SignalOnly uses reversible controls wherever Chrome exposes a reversible API.
 
 | Layer | Reversal path |
 | --- | --- |
-| Tor proxy | Disable Tor route. Extension clears its Chrome proxy setting. |
+| SOCKS proxy | Disable SOCKS proxy route. Extension clears its Chrome proxy setting. |
 | Chrome privacy settings | Disable privacy surface. Extension clears settings it controls. |
 | DNR header and tracker rules | Disable modules. Extension removes dynamic request rules. |
 | Site visual filtering | Clear site assignment or disable site profile. CSS and DOM markers are removed. |
