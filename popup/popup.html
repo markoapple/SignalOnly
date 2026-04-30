@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SignalOnly</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup" aria-live="polite">
+      <header class="top">
+        <div>
+          <div class="wordmark">SignalOnly</div>
+          <div class="subline">Privacy controls</div>
+        </div>
+        <div class="meta">
+          <span>BUILD 04.30</span>
+          <span id="profileId">PROFILE --</span>
+        </div>
+      </header>
+
+      <section class="status">
+        <div>
+          <span>Active site</span>
+          <b id="hostState">No site</b>
+        </div>
+        <div>
+          <span>SOCKS Proxy</span>
+          <b id="proxyState">127.0.0.1:9050</b>
+        </div>
+        <div>
+          <span>WebRTC</span>
+          <b id="webrtcState">Protected</b>
+        </div>
+      </section>
+
+      <label class="profile-row">
+        <span>Site Profile</span>
+        <select id="profileSelect"></select>
+      </label>
+
+      <section class="switches" aria-label="Privacy modules">
+        <button class="switch" type="button" data-setting="torEnabled" aria-pressed="false">
+          <span>Tor</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-setting="fingerprintShield" aria-pressed="false">
+          <span>Fingerprint</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-setting="storageShield" aria-pressed="false">
+          <span>Storage Isolation</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-setting="piiShield" aria-pressed="false">
+          <span>PII Shield</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-setting="sensorShield" aria-pressed="false">
+          <span>Sensors</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+        <button class="switch" type="button" data-setting="behaviorNoise" aria-pressed="false">
+          <span>Behavior Noise</span><i><b>ON</b><b>OFF</b></i>
+        </button>
+      </section>
+
+      <footer class="actions">
+        <button id="applyButton" class="primary" type="button">Apply to Current Site</button>
+        <button id="resetButton" type="button">Reset Site</button>
+        <button id="optionsButton" type="button">Settings</button>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

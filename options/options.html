@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SignalOnly Settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="surface">
+      <header class="mast">
+        <div>
+          <p class="micro">SO / MV3 / LOCAL CONFIG</p>
+          <h1>SignalOnly</h1>
+        </div>
+        <aside class="mast-meta" aria-label="Extension status">
+          <span id="buildStatus">BUILD 04.30</span>
+          <span id="globalState">Enabled</span>
+          <span id="profileId">PROFILE --</span>
+        </aside>
+      </header>
+
+      <section class="overview" aria-label="Current status">
+        <div>
+          <span>Active Site</span>
+          <b id="activeHost">No active tab</b>
+        </div>
+        <div>
+          <span>SOCKS Proxy</span>
+          <b id="torStatus">127.0.0.1:9050</b>
+        </div>
+        <div>
+          <span>Current Profile</span>
+          <b id="activeProfileName">Default</b>
+        </div>
+        <div>
+          <span>Site Profiles</span>
+          <b id="siteCount">000</b>
+        </div>
+      </section>
+
+      <section class="sheet-grid">
+        <section class="module span-2" aria-labelledby="networkHeading">
+          <header class="module-head">
+            <div>
+              <p class="micro">01 / NETWORK</p>
+              <h2 id="networkHeading">Network</h2>
+            </div>
+            <button class="switch-control" type="button" data-setting="torEnabled" aria-pressed="true">
+              <span>Tor</span><i><b>ON</b><b>OFF</b></i>
+            </button>
+          </header>
+          <div class="route-editor">
+            <label class="field">
+              <span>SOCKS Proxy Host</span>
+              <input id="torHost" type="text" spellcheck="false" value="127.0.0.1">
+            </label>
+            <label class="field short">
+              <span>Port</span>
+              <input id="torPort" type="number" min="1" max="65535" value="9050">
+            </label>
+            <button id="saveGlobalButton" class="button-primary" type="button">Save Settings</button>
+          </div>
+          <div class="row-list">
+            <div class="setting-row">
+              <div><b>WebRTC / DNS leak blocking</b><span>Forces non-proxied UDP off and disables prediction surfaces.</span></div>
+              <button class="switch-control small" type="button" data-setting="privacyControls" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+            </div>
+            <div class="setting-row">
+              <div><b>Header normalization</b><span>Applies profile user agent and language headers.</span></div>
+              <button class="switch-control small" type="button" data-setting="networkHeaders" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+            </div>
+            <div class="setting-row">
+              <div><b>Third-party isolation</b><span>Blocks common third-party tracking requests.</span></div>
+              <button class="switch-control small" type="button" data-setting="thirdPartyIsolation" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="module" aria-labelledby="fingerprintHeading">
+          <header class="module-head compact">
+            <div>
+              <p class="micro">02 / FINGERPRINT</p>
+              <h2 id="fingerprintHeading">Fingerprint</h2>
+            </div>
+            <button class="switch-control small" type="button" data-setting="fingerprintShield" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+          </header>
+          <div class="metadata">
+            <span>User Agent</span><b id="profileModel">--</b>
+            <span>Timezone</span><b id="profileTimezone">--</b>
+            <span>Screen</span><b id="profileScreen">--</b>
+            <span>WebGL</span><b id="profileWebgl">--</b>
+          </div>
+        </section>
+
+        <section class="module" aria-labelledby="storageHeading">
+          <header class="module-head compact">
+            <div>
+              <p class="micro">03 / STORAGE</p>
+              <h2 id="storageHeading">Storage</h2>
+            </div>
+            <button class="switch-control small" type="button" data-setting="storageShield" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+          </header>
+          <div class="metadata">
+            <span>localStorage</span><b id="storageSalt">Salted</b>
+            <span>IndexedDB</span><b id="indexedDbSalt">Namespaced</b>
+            <span>Cache API</span><b id="cacheSalt">Namespaced</b>
+            <span>BroadcastChannel</span><b id="channelSalt">Namespaced</b>
+          </div>
+        </section>
+
+        <section class="module" aria-labelledby="piiHeading">
+          <header class="module-head compact">
+            <div>
+              <p class="micro">04 / PII</p>
+              <h2 id="piiHeading">PII Shield</h2>
+            </div>
+            <button class="switch-control small" type="button" data-setting="piiShield" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+          </header>
+          <div class="row-list flush">
+            <div class="setting-row">
+              <div><b>Autofill suppression</b><span>Prevents address and payment autofill on unrelated pages.</span></div>
+              <button class="switch-control small" type="button" data-setting="blockAutofill" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+            </div>
+            <div class="setting-row">
+              <div><b>Referrer trimming</b><span>Reduces cross-site origin disclosure.</span></div>
+              <button class="switch-control small" type="button" data-setting="blockReferrers" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="module" aria-labelledby="sensorHeading">
+          <header class="module-head compact">
+            <div>
+              <p class="micro">05 / SENSORS</p>
+              <h2 id="sensorHeading">Sensors</h2>
+            </div>
+            <button class="switch-control small" type="button" data-setting="sensorShield" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+          </header>
+          <p class="section-note">Battery, motion, orientation, media device and serial interfaces are muted where the browser allows interception.</p>
+        </section>
+
+        <section class="module" aria-labelledby="behaviorHeading">
+          <header class="module-head compact">
+            <div>
+              <p class="micro">06 / BEHAVIOR</p>
+              <h2 id="behaviorHeading">Behavior Noise</h2>
+            </div>
+            <button class="switch-control small" type="button" data-setting="behaviorNoise" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
+          </header>
+          <p class="section-note">Adds profile-seeded timing and pointer jitter to reduce behavioral fingerprint stability.</p>
+        </section>
+      </section>
+
+      <section class="profile-system">
+        <aside class="profile-index">
+          <header>
+            <p class="micro">07 / PROFILES</p>
+            <h2>Profiles</h2>
+          </header>
+          <div class="profile-list" id="profileList"></div>
+        </aside>
+
+        <section class="profile-editor">
+          <header class="editor-head">
+            <div>
+              <p class="micro">PROFILE RANDOMIZATION</p>
+              <h2 id="profileEditorTitle">Profile</h2>
+            </div>
+            <div class="button-cluster">
+              <button id="newProfileButton" type="button">New Profile</button>
+              <button id="duplicateProfileButton" type="button">Duplicate Profile</button>
+              <button id="regenerateProfileButton" type="button">Regenerate Profile</button>
+              <button id="deleteProfileButton" class="danger" type="button">Delete Profile</button>
+            </div>
+          </header>
+
+          <div class="definition">
+            <label class="field"><span>Name</span><input id="profileName" type="text" spellcheck="false"></label>
+            <label class="field narrow"><span>Code</span><input id="profileCodeInput" type="text" spellcheck="false"></label>
+            <label class="field narrow"><span>Accent</span><input id="profileAccent" type="color" value="#ff006e"></label>
+            <button id="saveProfileButton" class="button-primary" type="button">Save Profile</button>
+          </div>
+
+          <div class="random-grid" aria-label="Profile randomized values">
+            <div><span>Profile ID</span><b id="randomProfileId">--</b></div>
+            <div><span>Seed</span><b id="randomSeed">--</b></div>
+            <div><span>Language</span><b id="randomLanguage">--</b></div>
+            <div><span>CPU / Memory</span><b id="randomHardware">--</b></div>
+            <div><span>Canvas Seed</span><b id="canvasSeed">--</b></div>
+            <div><span>Audio Seed</span><b id="audioSeed">--</b></div>
+            <div><span>Behavior Seed</span><b id="behaviorSeed">--</b></div>
+            <div><span>Tracker Salt</span><b id="trackerSalt">--</b></div>
+          </div>
+
+          <div class="page-rules">
+            <p class="micro">SITE PAGE CLEANUP / OPTIONAL</p>
+            <div class="cleanup-grid">
+              <button class="module-switch" type="button" data-module="recommendations" aria-pressed="true">Recommendations</button>
+              <button class="module-switch" type="button" data-module="comments" aria-pressed="true">Comments</button>
+              <button class="module-switch" type="button" data-module="metrics" aria-pressed="true">Metrics</button>
+              <button class="module-switch" type="button" data-module="overlays" aria-pressed="true">Overlays</button>
+              <button class="module-switch" type="button" data-module="sticky" aria-pressed="false">Sticky UI</button>
+              <button class="module-switch" type="button" data-module="motion" aria-pressed="true">Motion</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="site-system">
+        <header class="editor-head">
+          <div>
+            <p class="micro">08 / SITE RULES</p>
+            <h2>Site Profiles</h2>
+          </div>
+          <div class="button-cluster">
+            <button id="applySiteButton" class="button-primary" type="button">Apply to Current Site</button>
+            <button id="disableSiteButton" type="button">Disable Current Profile</button>
+            <button id="resetSiteButton" type="button">Reset Current Site</button>
+          </div>
+        </header>
+        <div class="site-editor">
+          <label class="field"><span>Host</span><input id="siteHost" type="text" spellcheck="false" placeholder="example.com"></label>
+          <label class="field"><span>Site Profile</span><select id="siteProfile"></select></label>
+          <button id="siteEnabled" class="switch-control" type="button" aria-pressed="true"><span>Site Rule</span><i><b>ON</b><b>OFF</b></i></button>
+        </div>
+        <div class="site-table" id="siteTable"></div>
+      </section>
+
+      <section class="config-system">
+        <header class="editor-head">
+          <div>
+            <p class="micro">09 / CONFIG</p>
+            <h2>Export / Import</h2>
+          </div>
+          <div class="button-cluster">
+            <button id="exportConfigButton" type="button">Export Config</button>
+            <button id="importConfigButton" type="button">Import Config</button>
+          </div>
+        </header>
+        <textarea id="configBuffer" spellcheck="false" placeholder="Exported configuration appears here. Paste configuration JSON here before import."></textarea>
+        <p id="statusLine" class="status-line">Ready</p>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

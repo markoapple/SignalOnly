@@ -1,0 +1,8 @@
+artifacts/
+dist/
+_metadata/
+store-assets/
+tools/
+*.log
+.DS_Store
+Thumbs.db
