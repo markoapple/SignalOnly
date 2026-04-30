@@ -1,8 +1,11 @@
-artifacts/
-dist/
-_metadata/
-store-assets/
-tools/
-*.log
+# Build artifacts
+_metadata/generated_indexed_rulesets/
+
+# OS files
 .DS_Store
 Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~

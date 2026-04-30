@@ -1,15 +1,17 @@
 const switchButtons = [...document.querySelectorAll(".switch-control[data-setting]")];
 const moduleButtons = [...document.querySelectorAll(".module-switch[data-module]")];
-const torHost = document.getElementById("torHost");
-const torPort = document.getElementById("torPort");
+const proxyHostInput = document.getElementById("proxyHost");
+const proxyPortInput = document.getElementById("proxyPort");
+const webRtcSelect = document.getElementById("webRtcMode");
 const globalState = document.getElementById("globalState");
-const torStatus = document.getElementById("torStatus");
+const proxyStatus = document.getElementById("proxyStatus");
 const activeHost = document.getElementById("activeHost");
+const activeHostNote = document.getElementById("activeHostNote");
 const activeProfileName = document.getElementById("activeProfileName");
 const profileId = document.getElementById("profileId");
 const siteCount = document.getElementById("siteCount");
 const statusLine = document.getElementById("statusLine");
-const buildStatus = document.getElementById("buildStatus");
+const versionTag = document.getElementById("versionTag");
 const profileList = document.getElementById("profileList");
 const siteProfile = document.getElementById("siteProfile");
 const siteHost = document.getElementById("siteHost");
@@ -21,6 +23,7 @@ const profileAccent = document.getElementById("profileAccent");
 const saveGlobalButton = document.getElementById("saveGlobalButton");
 const applySiteButton = document.getElementById("applySiteButton");
 const resetSiteButton = document.getElementById("resetSiteButton");
+const clearSiteCookiesButton = document.getElementById("clearSiteCookiesButton");
 const disableSiteButton = document.getElementById("disableSiteButton");
 const saveProfileButton = document.getElementById("saveProfileButton");
 const deleteProfileButton = document.getElementById("deleteProfileButton");
@@ -30,6 +33,34 @@ const newProfileButton = document.getElementById("newProfileButton");
 const exportConfigButton = document.getElementById("exportConfigButton");
 const importConfigButton = document.getElementById("importConfigButton");
 const configBuffer = document.getElementById("configBuffer");
+const exclusionInput = document.getElementById("exclusionInput");
+const exclusionList = document.getElementById("exclusionList");
+const addExclusionButton = document.getElementById("addExclusionButton");
+const resetExclusionsButton = document.getElementById("resetExclusionsButton");
+
+const DEFAULT_EXCLUDED_HOSTS = [
+  "accounts.google.com",
+  "myaccount.google.com",
+  "oauth2.googleapis.com",
+  "accounts.youtube.com",
+  "pay.google.com",
+  "appleid.apple.com",
+  "idmsa.apple.com",
+  "login.microsoftonline.com",
+  "login.live.com",
+  "login.microsoft.com",
+  "login.yahoo.com",
+  "github.com",
+  "id.atlassian.com",
+  "auth.openai.com",
+  "auth0.com",
+  "okta.com",
+  "duosecurity.com",
+  "checkout.stripe.com",
+  "js.stripe.com",
+  "paypal.com",
+  "www.paypal.com"
+];
 
 let settings = {};
 let context = {};
@@ -66,6 +97,10 @@ moduleButtons.forEach((button) => {
   });
 });
 
+webRtcSelect.addEventListener("change", () => {
+  settings.webRtcMode = webRtcSelect.value;
+});
+
 siteEnabled.addEventListener("click", () => {
   siteEnabled.setAttribute("aria-pressed", String(siteEnabled.getAttribute("aria-pressed") !== "true"));
 });
@@ -76,27 +111,26 @@ siteProfile.addEventListener("change", () => {
 });
 
 profileName.addEventListener("input", () => {
+
+  const listButtons = profileList.querySelectorAll("button");
   const profile = currentProfile();
   if (profile) {
-    profile.name = profileName.value;
-    renderProfileList();
+    listButtons.forEach((button) => {
+      if (button.getAttribute("aria-pressed") === "true") {
+        const titleEl = button.querySelector("b");
+        if (titleEl) titleEl.textContent = profileName.value || profile.name;
+      }
+    });
   }
 });
 
 profileCodeInput.addEventListener("input", () => {
-  const profile = currentProfile();
-  if (profile) {
-    profile.code = profileCodeInput.value;
-    renderProfileList();
-  }
+
 });
 
 profileAccent.addEventListener("input", () => {
-  const profile = currentProfile();
-  if (profile) {
-    profile.accent = profileAccent.value;
-    render();
-  }
+
+  document.documentElement.style.setProperty("--accent", profileAccent.value || "#ff006e");
 });
 
 saveGlobalButton.addEventListener("click", async () => {
@@ -113,9 +147,11 @@ applySiteButton.addEventListener("click", async () => {
     type: "applySiteProfile",
     host: selectedHost(),
     profileId: siteProfile.value || selectedProfileId,
-    enabled: siteEnabled.getAttribute("aria-pressed") === "true"
+    enabled: siteEnabled.getAttribute("aria-pressed") === "true",
+    clearCookies: true
   });
-  setStatus(result?.ok ? "Site profile applied" : result?.error || "Site profile failed");
+  const suffix = result?.cookiesCleared > 0 ? ` (${result.cookiesCleared} cookies cleared)` : "";
+  setStatus(result?.ok ? `Site profile applied${suffix}` : result?.error || "Site profile failed");
   if (result?.ok) {
     hydrate(result);
   }
@@ -139,6 +175,20 @@ resetSiteButton.addEventListener("click", async () => {
   setStatus(result?.ok ? "Current site reset" : result?.error || "Reset failed");
   if (result?.ok) {
     hydrate(result);
+  }
+});
+
+clearSiteCookiesButton.addEventListener("click", async () => {
+  const host = selectedHost();
+  if (!host) {
+    setStatus("No host selected");
+    return;
+  }
+  const result = await send({ type: "clearSiteCookies", host });
+  if (result?.ok) {
+    setStatus(`Cleared ${result.cleared} cookie${result.cleared !== 1 ? "s" : ""} for ${host}`);
+  } else {
+    setStatus(result?.error || "Cookie clear failed");
   }
 });
 
@@ -187,6 +237,25 @@ deleteProfileButton.addEventListener("click", async () => {
   }
 });
 
+addExclusionButton.addEventListener("click", async () => {
+  const candidate = (exclusionInput.value || "").trim().toLowerCase();
+  if (!candidate) return;
+  const next = [...new Set([...(settings.excludedHosts || []), candidate])];
+  const result = await send({ type: "saveSettings", settings: { excludedHosts: next } });
+  if (result?.ok) {
+    exclusionInput.value = "";
+    setStatus(`Added ${candidate} to exclusions`);
+    hydrate(result);
+  }
+});
+
+resetExclusionsButton.addEventListener("click", async () => {
+  const merged = [...new Set([...(settings.excludedHosts || []), ...DEFAULT_EXCLUDED_HOSTS])];
+  const result = await send({ type: "saveSettings", settings: { excludedHosts: merged } });
+  setStatus(result?.ok ? "Default exclusions restored" : "Failed");
+  if (result?.ok) hydrate(result);
+});
+
 exportConfigButton.addEventListener("click", async () => {
   const result = await send({ type: "exportConfig" });
   if (result?.ok) {
@@ -214,6 +283,9 @@ function hydrate(state) {
   if (!siteHost.value) {
     siteHost.value = context.host || "";
   }
+  if (state.version) {
+    versionTag.textContent = `v${state.version}`;
+  }
   render();
 }
 
@@ -225,6 +297,7 @@ function render() {
   renderProfileList();
   renderProfileEditor();
   renderSiteTable();
+  renderExclusionList();
 }
 
 function renderGlobal(profile) {
@@ -233,12 +306,25 @@ function renderGlobal(profile) {
     button.setAttribute("aria-pressed", String(Boolean(settings[key])));
   });
 
-  torHost.value = settings.torHost || "127.0.0.1";
-  torPort.value = settings.torPort || 9050;
-  buildStatus.textContent = "BUILD 04.30";
+  proxyHostInput.value = settings.proxyHost || "127.0.0.1";
+  proxyPortInput.value = settings.proxyPort || 9050;
+  webRtcSelect.value = settings.webRtcMode || "soft";
   globalState.textContent = settings.enabled ? "Enabled" : "Disabled";
-  torStatus.textContent = settings.enabled && settings.torEnabled ? `${settings.torHost}:${settings.torPort}` : "Disabled";
+  proxyStatus.textContent = settings.enabled && settings.proxyEnabled ? `${settings.proxyHost}:${settings.proxyPort}` : "Disabled";
+
   activeHost.textContent = context.host || "No active tab";
+  if (context.defaultExcluded) {
+    activeHostNote.textContent = "Auth/payment — protected default";
+  } else if (context.excluded) {
+    activeHostNote.textContent = "User-excluded";
+  } else if (context.assignment?.enabled) {
+    activeHostNote.textContent = `Assigned: ${profile?.name || ""}`;
+  } else if (context.assignment) {
+    activeHostNote.textContent = "Assigned (paused)";
+  } else {
+    activeHostNote.textContent = settings.applyShieldsGlobally ? "Global mode" : "Not assigned";
+  }
+
   activeProfileName.textContent = profile ? `${profile.name} / ${profile.code}` : "No profile";
   profileId.textContent = profile?.randomization?.profileId || "PROFILE --";
   siteCount.textContent = String(Object.keys(settings.siteAssignments || {}).length).padStart(3, "0");
@@ -261,11 +347,24 @@ function renderProfileList() {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute("aria-pressed", String(profile.id === selectedProfileId));
-    button.innerHTML = `
-      <i class="swatch" style="background:${profile.accent}"></i>
-      <span><b>${escapeHtml(profile.name)}</b><small>${escapeHtml(profile.code)} / ${escapeHtml(profile.randomization?.profileId || profile.id)}</small></span>
-      <small>${escapeHtml(profile.randomization?.model || "PROFILE")}</small>
-    `;
+
+    const swatch = document.createElement("i");
+    swatch.className = "swatch";
+    swatch.style.background = profile.accent;
+    button.append(swatch);
+
+    const meta = document.createElement("span");
+    const title = document.createElement("b");
+    title.textContent = profile.name;
+    const sub = document.createElement("small");
+    sub.textContent = `${profile.code} / ${profile.randomization?.profileId || profile.id}`;
+    meta.append(title, sub);
+    button.append(meta);
+
+    const model = document.createElement("small");
+    model.textContent = profile.randomization?.model || "PROFILE";
+    button.append(model);
+
     button.addEventListener("click", () => {
       selectedProfileId = profile.id;
       render();
@@ -289,10 +388,6 @@ function renderProfileEditor() {
   document.getElementById("profileTimezone").textContent = randomization.timezone || "--";
   document.getElementById("profileScreen").textContent = randomization.screen ? `${randomization.screen.width}x${randomization.screen.height} @ ${randomization.screen.devicePixelRatio}` : "--";
   document.getElementById("profileWebgl").textContent = randomization.webglRenderer || "--";
-  document.getElementById("storageSalt").textContent = shortHex(randomization.salts?.storage);
-  document.getElementById("indexedDbSalt").textContent = shortHex(randomization.salts?.indexedDB);
-  document.getElementById("cacheSalt").textContent = shortHex(randomization.salts?.cache);
-  document.getElementById("channelSalt").textContent = shortHex(randomization.salts?.broadcastChannel);
   document.getElementById("randomProfileId").textContent = randomization.profileId || "--";
   document.getElementById("randomSeed").textContent = shortHex(randomization.seedHex, 16);
   document.getElementById("randomLanguage").textContent = Array.isArray(randomization.languages) ? randomization.languages.join(", ") : randomization.language || "--";
@@ -301,6 +396,15 @@ function renderProfileEditor() {
   document.getElementById("audioSeed").textContent = shortHex(randomization.audioNoiseSeed);
   document.getElementById("behaviorSeed").textContent = shortHex(randomization.behaviorJitterSeed);
   document.getElementById("trackerSalt").textContent = shortHex(randomization.trackerRuleSalt);
+
+  const cookiePolicySelect = document.getElementById("profileCookiePolicy");
+  if (cookiePolicySelect) {
+    cookiePolicySelect.value = profile.cookiePolicy || "keep";
+  }
+  const cookieCapInput = document.getElementById("cookieExpiryCapDays");
+  if (cookieCapInput) {
+    cookieCapInput.value = settings.cookieExpiryCapDays ?? 7;
+  }
 
   moduleButtons.forEach((button) => {
     button.setAttribute("aria-pressed", String(Boolean(profile.modules?.[button.dataset.module])));
@@ -316,7 +420,7 @@ function renderSiteTable() {
   if (!entries.length) {
     const empty = document.createElement("div");
     empty.className = "site-row";
-    empty.innerHTML = "<b>No site profiles configured</b><span>Local index empty</span><span>--</span><span>--</span>";
+    empty.textContent = "No site profiles configured — local index empty";
     siteTable.append(empty);
     return;
   }
@@ -326,12 +430,17 @@ function renderSiteTable() {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "site-row";
-    row.innerHTML = `
-      <b>${escapeHtml(host)}</b>
-      <span>${escapeHtml(profile?.name || assignment.profileId)}</span>
-      <span>${assignment.enabled ? "Active" : "Disabled"}</span>
-      <span>${escapeHtml(profile?.code || "--")}</span>
-    `;
+
+    const hostCell = document.createElement("b");
+    hostCell.textContent = host;
+    const profileCell = document.createElement("span");
+    profileCell.textContent = profile?.name || assignment.profileId;
+    const statusCell = document.createElement("span");
+    statusCell.textContent = assignment.enabled ? "Active" : "Disabled";
+    const codeCell = document.createElement("span");
+    codeCell.textContent = profile?.code || "--";
+    row.append(hostCell, profileCell, statusCell, codeCell);
+
     row.addEventListener("click", () => {
       siteHost.value = host;
       selectedProfileId = assignment.profileId;
@@ -342,9 +451,55 @@ function renderSiteTable() {
   });
 }
 
+function renderExclusionList() {
+  exclusionList.textContent = "";
+  const items = settings.excludedHosts || [];
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "exclusion-row";
+    empty.textContent = "No exclusions — defaults still enforced";
+    exclusionList.append(empty);
+    return;
+  }
+
+  items.forEach((host) => {
+    const row = document.createElement("div");
+    row.className = "exclusion-row";
+
+    const label = document.createElement("b");
+    label.textContent = host;
+    row.append(label);
+
+    const isDefault = DEFAULT_EXCLUDED_HOSTS.includes(host);
+    const tag = document.createElement("span");
+    tag.textContent = isDefault ? "Default" : "Custom";
+    row.append(tag);
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", async () => {
+      const next = (settings.excludedHosts || []).filter((entry) => entry !== host);
+      const result = await send({ type: "saveSettings", settings: { excludedHosts: next } });
+      if (result?.ok) {
+        setStatus(`Removed ${host}${isDefault ? " (defaults still enforced internally)" : ""}`);
+        hydrate(result);
+      }
+    });
+    row.append(removeButton);
+
+    exclusionList.append(row);
+  });
+}
+
 function collectGlobal() {
-  settings.torHost = torHost.value.trim() || "127.0.0.1";
-  settings.torPort = Number(torPort.value) || 9050;
+  settings.proxyHost = proxyHostInput.value.trim() || "127.0.0.1";
+  settings.proxyPort = Number(proxyPortInput.value) || 9050;
+  settings.webRtcMode = webRtcSelect.value || "soft";
+  const cookieCapInput = document.getElementById("cookieExpiryCapDays");
+  if (cookieCapInput) {
+    settings.cookieExpiryCapDays = Number(cookieCapInput.value) || 0;
+  }
 }
 
 function collectProfile() {
@@ -352,6 +507,10 @@ function collectProfile() {
   profile.name = profileName.value.trim() || profile.name;
   profile.code = profileCodeInput.value.trim() || profile.code;
   profile.accent = profileAccent.value || profile.accent;
+  const cookiePolicySelect = document.getElementById("profileCookiePolicy");
+  if (cookiePolicySelect) {
+    profile.cookiePolicy = cookiePolicySelect.value || "keep";
+  }
   moduleButtons.forEach((button) => {
     profile.modules[button.dataset.module] = button.getAttribute("aria-pressed") === "true";
   });
@@ -373,20 +532,27 @@ function selectedHost() {
 function pickGlobalSettings(source) {
   return {
     enabled: source.enabled,
-    torEnabled: source.torEnabled,
-    torHost: source.torHost,
-    torPort: source.torPort,
+    proxyEnabled: source.proxyEnabled,
+    proxyHost: source.proxyHost,
+    proxyPort: source.proxyPort,
     privacyControls: source.privacyControls,
+    webRtcMode: source.webRtcMode,
     fingerprintShield: source.fingerprintShield,
     storageShield: source.storageShield,
     sensorShield: source.sensorShield,
     piiShield: source.piiShield,
     behaviorNoise: source.behaviorNoise,
     networkHeaders: source.networkHeaders,
+    spoofUserAgentHeader: source.spoofUserAgentHeader,
     thirdPartyIsolation: source.thirdPartyIsolation,
+    blockTrackingHeaders: source.blockTrackingHeaders,
+    blockServiceWorkers: source.blockServiceWorkers,
+    applyShieldsGlobally: source.applyShieldsGlobally,
     blockTopics: source.blockTopics,
     blockAutofill: source.blockAutofill,
     blockReferrers: source.blockReferrers,
+    autoClearOnSwitch: source.autoClearOnSwitch,
+    cookieExpiryCapDays: source.cookieExpiryCapDays,
     activeProfileId: selectedProfileId,
     excludedHosts: source.excludedHosts
   };
@@ -398,14 +564,6 @@ function setStatus(text) {
 
 function shortHex(value, length = 10) {
   return value ? `${String(value).slice(0, length).toUpperCase()}...` : "--";
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 async function send(message) {

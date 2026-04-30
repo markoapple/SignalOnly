@@ -423,7 +423,7 @@ select {
 
 .definition {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 132px 110px 128px;
+  grid-template-columns: minmax(0, 1fr) 132px 110px 170px 128px;
   gap: 10px;
   align-items: end;
   margin: 18px 0 14px;
@@ -519,6 +519,116 @@ textarea {
   font-size: 10px;
 }
 
+.banner {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  padding: 15px 18px;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--hair);
+}
+
+.banner p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.overview small {
+  display: block;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.setting-row.dense {
+  min-height: 44px;
+  padding: 8px 0;
+}
+
+.field.inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field.inline input {
+  width: 72px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  background: #fff;
+}
+
+.field.inline span {
+  font-size: 12px;
+  text-transform: none;
+}
+
+.exclusion-system {
+  margin-top: 14px;
+  padding: 18px;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--hair);
+}
+
+.exclusion-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 18px 0 14px;
+}
+
+.exclusion-list {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.exclusion-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 12px;
+  background: var(--paper);
+  font-size: 12px;
+}
+
+.exclusion-row b {
+  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exclusion-row span {
+  color: var(--muted);
+  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.exclusion-row button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.mast-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 @media (max-width: 900px) {
   .surface {
     width: calc(100vw - 24px);
@@ -526,6 +636,7 @@ textarea {
   }
 
   .mast,
+  .mast-toggle,
   .overview,
   .sheet-grid,
   .span-2,
