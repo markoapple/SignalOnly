@@ -6,6 +6,12 @@ It creates isolated cookie profiles per site, spoofs deep fingerprinting vectors
 
 It's safe by default: sensitive sites like banks and logins are preloaded as editable exclusions so you can bypass extension routing and shields where account access matters.
 
+## Isolated Identity Profiles
+
+SignalOnly includes an identity-profile system for isolated browsing environments. Each profile carries its own randomized browser surface, storage namespace, tracker salts, and site rules, making it useful for controlled alt/profile workflows, privacy testing, and separated account contexts.
+
+Profiles are local, reversible, and tied to explicit site rules, so you can test account environments or privacy profiles without changing the core browser setup.
+
 ## What it actually does
 
  **Fingerprint Spoofing**: Feeds fake but consistent data to scripts checking Canvas, WebGL, AudioContext, DOMRects, Math precision, screen posture, plugins, and hardware concurrency.

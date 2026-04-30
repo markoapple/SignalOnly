@@ -306,6 +306,7 @@ function render() {
 }
 
 function renderGlobal(profile) {
+  const hasSupportedPage = Boolean(context.host);
   switchButtons.forEach((button) => {
     const key = button.dataset.setting;
     button.setAttribute("aria-pressed", String(Boolean(settings[key])));
@@ -318,8 +319,10 @@ function renderGlobal(profile) {
   proxyStatus.textContent = settings.enabled && settings.proxyEnabled ? `${settings.proxyHost}:${settings.proxyPort}` : "Disabled";
   proxyModeStatus.textContent = telemetry.proxyMode ? `Mode: ${telemetry.proxyMode}` : "";
 
-  activeHost.textContent = context.host || "No active tab";
-  if (context.excluded) {
+  activeHost.textContent = context.host || "No supported page";
+  if (!hasSupportedPage) {
+    activeHostNote.textContent = "Open an http or https page for current-site actions";
+  } else if (context.excluded) {
     activeHostNote.textContent = "Excluded: direct route / shields off";
   } else if (context.assignment?.enabled) {
     activeHostNote.textContent = `Assigned: ${profile?.name || ""}`;
@@ -332,6 +335,16 @@ function renderGlobal(profile) {
   activeProfileName.textContent = profile ? `${profile.name} / ${profile.code}` : "No profile";
   profileId.textContent = profile?.randomization?.profileId || "PROFILE --";
   siteCount.textContent = String(Object.keys(settings.siteAssignments || {}).length).padStart(3, "0");
+  [
+    applySiteButton,
+    disableSiteButton,
+    resetSiteButton,
+    clearSiteCookiesButton,
+    excludeCurrentSiteButton,
+    removeCurrentExclusionButton
+  ].forEach((button) => {
+    button.disabled = !hasSupportedPage;
+  });
 }
 
 function renderProfileSelect() {

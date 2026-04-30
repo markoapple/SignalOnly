@@ -4,11 +4,12 @@
   --ink: #040404;
   --muted: #656159;
   --line: rgba(4, 4, 4, 0.92);
-  --hair: rgba(4, 4, 4, 0.22);
+  --hair: rgba(4, 4, 4, 0.18);
   --soft: #dfddd5;
   --accent: #ff006e;
   --warn: #b48a00;
   --excluded: #656159;
+  --disabled: rgba(4, 4, 4, 0.38);
 }
 
 * {
@@ -23,6 +24,7 @@ body {
   background: var(--base);
   color: var(--ink);
   font-family: Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  overflow: hidden;
 }
 
 button,
@@ -32,22 +34,22 @@ select {
 
 .popup {
   width: 392px;
-  padding: 18px;
+  padding: 12px;
   background: var(--base);
 }
 
 .top {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 18px;
+  gap: 14px;
   align-items: start;
-  padding-bottom: 16px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
 }
 
 .wordmark {
   font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 30px;
+  font-size: 27px;
   line-height: 0.95;
   font-weight: 900;
 }
@@ -62,14 +64,14 @@ select {
 }
 
 .subline {
-  margin-top: 5px;
+  margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .meta {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   justify-items: end;
   color: var(--muted);
   font-size: 9px;
@@ -81,14 +83,14 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
-  margin-top: 14px;
+  margin-top: 10px;
   background: var(--line);
   border: 1px solid var(--line);
 }
 
 .status div {
-  min-height: 58px;
-  padding: 11px;
+  min-height: 48px;
+  padding: 8px 10px;
   background: var(--paper);
 }
 
@@ -108,7 +110,7 @@ select {
 
 .status span {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 5px;
   color: var(--muted);
   font-size: 9px;
 }
@@ -118,12 +120,12 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .status small {
   display: block;
-  margin-top: 5px;
+  margin-top: 3px;
   color: var(--muted);
   font-size: 9px;
   text-transform: uppercase;
@@ -132,8 +134,8 @@ select {
 
 .profile-row {
   display: grid;
-  gap: 7px;
-  margin-top: 14px;
+  gap: 5px;
+  margin-top: 10px;
 }
 
 .profile-row span {
@@ -143,8 +145,8 @@ select {
 
 select {
   width: 100%;
-  height: 38px;
-  padding: 0 11px;
+  height: 32px;
+  padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 0;
   background: var(--paper);
@@ -155,24 +157,24 @@ select {
 .switches {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 7px;
+  margin-top: 10px;
 }
 
 .master-switch {
   grid-column: 1 / -1;
-  grid-template-columns: 1fr 82px;
+  grid-template-columns: 1fr 74px;
   font-size: 13px;
   font-weight: 850;
 }
 
 .switch {
   display: grid;
-  grid-template-columns: 1fr 72px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 74px;
+  gap: 7px;
   align-items: center;
-  min-height: 44px;
-  padding: 8px 10px;
+  min-height: 38px;
+  padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--paper);
@@ -182,7 +184,10 @@ select {
 }
 
 .switch > span {
-  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
   font-weight: 720;
 }
 
@@ -190,8 +195,8 @@ select {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  width: 72px;
-  height: 30px;
+  width: 74px;
+  height: 28px;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--soft);
@@ -207,7 +212,7 @@ select {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 35px;
+  width: 36px;
   background: var(--accent);
   border-right: 1px solid var(--line);
   transition: transform 120ms ease;
@@ -221,7 +226,7 @@ select {
 }
 
 .switch[aria-pressed="false"] i::before {
-  transform: translateX(35px);
+  transform: translateX(36px);
   background: var(--paper);
   border-left: 1px solid var(--line);
   border-right: 0;
@@ -237,13 +242,13 @@ select {
 
 .actions {
   display: grid;
-  grid-template-columns: 1fr 82px 78px;
-  gap: 8px;
-  margin-top: 15px;
+  grid-template-columns: 1fr 76px 74px;
+  gap: 7px;
+  margin-top: 10px;
 }
 
 .actions button {
-  min-height: 42px;
+  min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 0;
   background: var(--paper);
@@ -251,9 +256,28 @@ select {
   cursor: pointer;
   font-weight: 820;
   line-height: 1.05;
+  font-size: 11px;
 }
 
 .actions .primary {
   background: var(--ink);
   color: white;
+}
+
+select:disabled,
+button:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+button:disabled {
+  border-color: var(--hair);
+  background: rgba(255, 254, 250, 0.58);
+}
+
+.actions .primary:disabled {
+  background: rgba(4, 4, 4, 0.14);
+  border-color: rgba(4, 4, 4, 0.14);
+  color: var(--disabled);
 }

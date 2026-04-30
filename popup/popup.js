@@ -101,9 +101,13 @@ function renderProfiles() {
 
 function render() {
   document.documentElement.style.setProperty("--accent", selectedProfile?.accent || "#ff006e");
+  const hasSupportedPage = Boolean(context.host);
 
   hostState.textContent = context.host || "No supported page";
-  if (context.excluded) {
+  if (!hasSupportedPage) {
+    hostCell.dataset.state = "default";
+    hostNote.textContent = "Open an http or https page to assign a profile";
+  } else if (context.excluded) {
     hostCell.dataset.state = "excluded";
     hostNote.textContent = "Excluded: direct route / shields off";
   } else if (context.assignment?.enabled) {
@@ -117,6 +121,10 @@ function render() {
     hostNote.textContent = settings.applyShieldsGlobally ? "Global mode" : "Not assigned";
   }
 
+  profileSelect.disabled = !hasSupportedPage;
+  applyButton.disabled = !hasSupportedPage;
+  resetButton.disabled = !hasSupportedPage;
+
   proxyState.textContent = settings.enabled && settings.proxyEnabled
     ? `${settings.proxyHost}:${settings.proxyPort}`
     : "Disabled";
@@ -128,7 +136,7 @@ function render() {
   } else if (settings.webRtcMode === "off") {
     webrtcState.textContent = "Default";
   } else {
-    webrtcState.textContent = "Soft (public-only)";
+    webrtcState.textContent = "Public IP Only";
   }
 
   profileId.textContent = selectedProfile?.randomization?.profileId || "PROFILE --";
