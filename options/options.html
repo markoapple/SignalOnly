@@ -59,7 +59,7 @@
               <h2 id="networkHeading">Network</h2>
             </div>
             <button class="switch-control" type="button" data-setting="proxyEnabled" aria-pressed="false">
-              <span>Tor / SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
+              <span>Tor Browser SOCKS</span><i><b>ON</b><b>OFF</b></i>
             </button>
           </header>
           <div class="route-editor">
@@ -69,7 +69,7 @@
             </label>
             <label class="field short">
               <span>Port</span>
-              <input id="proxyPort" type="number" min="1" max="65535" value="9050">
+              <input id="proxyPort" type="number" min="1" max="65535" value="9150">
             </label>
             <label class="field short">
               <span>WebRTC</span>
@@ -83,7 +83,7 @@
           </div>
           <div class="row-list">
             <div class="setting-row">
-              <div><b>WebRTC / DNS leak blocking</b><span>Hides the local interface IP. "Public IP Only" preserves WebRTC; "Strict" disables non-proxied UDP and pairs with a SOCKS proxy.</span></div>
+              <div><b>WebRTC / DNS leak blocking</b><span>Hides the local interface IP. "Public IP Only" preserves WebRTC; "Strict" disables non-proxied UDP and pairs with Tor Browser's SOCKS proxy.</span></div>
               <button class="switch-control small" type="button" data-setting="privacyControls" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
             </div>
             <div class="setting-row">

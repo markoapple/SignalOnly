@@ -313,7 +313,7 @@ function renderGlobal(profile) {
   });
 
   proxyHostInput.value = settings.proxyHost || "127.0.0.1";
-  proxyPortInput.value = settings.proxyPort || 9050;
+  proxyPortInput.value = settings.proxyPort || 9150;
   webRtcSelect.value = settings.webRtcMode || "soft";
   globalState.textContent = settings.enabled ? "Enabled" : "Disabled";
   proxyStatus.textContent = settings.enabled && settings.proxyEnabled ? `${settings.proxyHost}:${settings.proxyPort}` : "Disabled";
@@ -521,7 +521,7 @@ function renderExclusionList() {
 
 function collectGlobal() {
   settings.proxyHost = proxyHostInput.value.trim() || "127.0.0.1";
-  settings.proxyPort = Number(proxyPortInput.value) || 9050;
+  settings.proxyPort = Number(proxyPortInput.value) || 9150;
   settings.webRtcMode = webRtcSelect.value || "soft";
   const cookieCapInput = document.getElementById("cookieExpiryCapDays");
   if (cookieCapInput) {

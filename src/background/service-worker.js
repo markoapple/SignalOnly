@@ -1,5 +1,5 @@
 const SETTINGS_KEY = "signalonly.settings";
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 const HEADER_RULE_ID = 7100;
 const THIRD_PARTY_RULE_ID = 7101;
@@ -66,7 +66,7 @@ const DEFAULT_SETTINGS = {
 
   proxyEnabled: false,
   proxyHost: "127.0.0.1",
-  proxyPort: 9050,
+  proxyPort: 9150,
   privacyControls: true,
   webRtcMode: "soft",
 
@@ -670,6 +670,12 @@ function migrateSettings(stored) {
       next.profiles.forEach((p) => {
         if (!p.cookiePolicy) p.cookiePolicy = "keep";
       });
+    }
+  }
+
+  if ((next.schemaVersion || 0) < 4) {
+    if ((next.proxyHost || DEFAULT_SETTINGS.proxyHost) === "127.0.0.1" && Number(next.proxyPort || 9050) === 9050) {
+      next.proxyPort = 9150;
     }
   }
 
