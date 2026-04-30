@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "KH Interference";
+  src: url("../assets/fonts/kh-interference-regular.otf") format("opentype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Marathon Shapiro 65";
+  src: url("../assets/fonts/marathon-shapiro-65.ttf") format("truetype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --base: #efeee9;
   --paper: #fffefa;
@@ -23,7 +39,7 @@ body {
   margin: 0;
   background: var(--base);
   color: var(--ink);
-  font-family: Inter, Geist, Helvetica, Arial, sans-serif;
+  font-family: "KH Interference", sans-serif;
   overflow-x: clip;
 }
 
@@ -71,8 +87,8 @@ textarea:focus-visible {
 h1,
 h2 {
   margin: 0;
-  font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 900;
+  font-family: "KH Interference", sans-serif;
+  font-weight: 800;
 }
 
 h1 {
@@ -94,7 +110,7 @@ h2 {
 .site-table,
 .status-line,
 textarea {
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   text-transform: uppercase;
 }
 
@@ -269,7 +285,7 @@ select {
   border-radius: 2px;
   background: var(--soft);
   font-style: normal;
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   font-size: 10px;
   font-weight: 850;
 }
@@ -364,7 +380,7 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: Inter, Geist, Helvetica, Arial, sans-serif;
+  font-family: "KH Interference", sans-serif;
   text-transform: none;
   font-size: 13px;
 }
@@ -373,7 +389,7 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   text-transform: uppercase;
   font-size: 11px;
 }
@@ -428,7 +444,7 @@ select {
 
 .profile-list small {
   color: var(--muted);
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -588,7 +604,7 @@ textarea {
 .overview small {
   display: block;
   color: var(--muted);
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -653,7 +669,7 @@ textarea {
 }
 
 .exclusion-row b {
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -662,7 +678,7 @@ textarea {
 
 .exclusion-row span {
   color: var(--muted);
-  font-family: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -884,4 +900,11 @@ button:disabled {
   .cleanup-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.preview-headline,
+.campaign-headline {
+  font-family: "Marathon Shapiro 65", sans-serif;
+  font-weight: 800;
+  line-height: 0.92;
 }

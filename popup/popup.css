@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "KH Interference";
+  src: url("../assets/fonts/kh-interference-regular.otf") format("opentype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Marathon Shapiro 65";
+  src: url("../assets/fonts/marathon-shapiro-65.ttf") format("truetype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --base: #efeee9;
   --paper: #fffefa;
@@ -23,7 +39,7 @@ body {
   margin: 0;
   background: var(--base);
   color: var(--ink);
-  font-family: Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family: "KH Interference", sans-serif;
   overflow: hidden;
 }
 
@@ -48,10 +64,10 @@ select {
 }
 
 .wordmark {
-  font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 27px;
-  line-height: 0.95;
-  font-weight: 900;
+  font-family: "KH Interference", sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 800;
 }
 
 .subline,
@@ -59,7 +75,7 @@ select {
 .status span,
 .status small,
 .profile-row span {
-  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   text-transform: uppercase;
 }
 
@@ -199,7 +215,7 @@ select {
   border-radius: 2px;
   background: var(--soft);
   font-style: normal;
-  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-family: "KH Interference", sans-serif;
   font-size: 9px;
   font-weight: 800;
 }
@@ -278,4 +294,11 @@ button:disabled {
   background: rgba(4, 4, 4, 0.14);
   border-color: rgba(4, 4, 4, 0.14);
   color: var(--disabled);
+}
+
+.preview-headline,
+.campaign-headline {
+  font-family: "Marathon Shapiro 65", sans-serif;
+  font-weight: 800;
+  line-height: 0.92;
 }
