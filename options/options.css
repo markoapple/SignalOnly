@@ -24,6 +24,7 @@ body {
   background: var(--base);
   color: var(--ink);
   font-family: Inter, Geist, Helvetica, Arial, sans-serif;
+  overflow-x: clip;
 }
 
 button,
@@ -51,9 +52,11 @@ textarea:focus-visible {
 }
 
 .surface {
-  width: min(1180px, calc(100vw - 48px));
+  width: min(1180px, calc(100vw - 32px));
+  max-width: 1180px;
   margin: 0 auto;
   padding: 36px 0 58px;
+  overflow-x: clip;
 }
 
 .mast {
@@ -674,6 +677,106 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 16px;
+  min-width: 0;
+}
+
+.mast {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.overview,
+.sheet-grid,
+.module,
+.profile-system,
+.profile-index,
+.profile-editor,
+.site-system,
+.exclusion-system,
+.config-system {
+  min-width: 0;
+}
+
+.module > *,
+.profile-index > *,
+.profile-editor > *,
+.site-system > *,
+.exclusion-system > *,
+.config-system > * {
+  min-width: 0;
+}
+
+.overview {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 0.8fr);
+}
+
+.overview div {
+  min-width: 0;
+}
+
+.module-head,
+.editor-head {
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  min-width: 0;
+}
+
+.profile-editor .editor-head {
+  grid-template-columns: minmax(0, 0.8fr) minmax(260px, 1.2fr);
+}
+
+.route-editor {
+  grid-template-columns: minmax(180px, 1fr) minmax(88px, 116px) minmax(150px, 190px) minmax(120px, 150px);
+}
+
+.field {
+  min-width: 0;
+}
+
+.profile-system {
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+}
+
+.profile-list button {
+  grid-template-columns: 8px minmax(0, 1fr) minmax(0, auto);
+}
+
+.button-cluster {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.button-cluster button {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.button-cluster button,
+.button-primary,
+#saveProfileButton {
+  padding-inline: 11px;
+}
+
+.definition {
+  grid-template-columns: minmax(180px, 1fr) minmax(92px, 132px) minmax(82px, 110px) minmax(140px, 170px) minmax(110px, 128px);
+}
+
+.random-grid div {
+  min-width: 0;
+}
+
+.cleanup-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.site-editor {
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 260px) minmax(160px, 190px);
+}
+
+.site-row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(72px, 96px) minmax(92px, 120px);
+}
+
+.exclusion-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
 }
 
 button:disabled {
@@ -687,6 +790,55 @@ button:disabled {
   background: rgba(4, 4, 4, 0.14);
   border-color: rgba(4, 4, 4, 0.14);
   color: var(--disabled);
+}
+
+@media (max-width: 1120px) {
+  .profile-system {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  }
+
+  .profile-editor .editor-head {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-editor .button-cluster {
+    justify-content: flex-start;
+  }
+
+  .definition {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field.narrow {
+    max-width: none;
+  }
+
+  #saveProfileButton {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 1040px) {
+  .route-editor,
+  .site-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .random-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .random-grid div:nth-child(4n) {
+    border-right: 1px solid var(--faint);
+  }
+
+  .random-grid div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .cleanup-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -721,5 +873,15 @@ button:disabled {
   .overview div {
     border-right: 0;
     border-bottom: 1px solid var(--hair);
+  }
+}
+
+@media (max-width: 560px) {
+  .surface {
+    width: calc(100vw - 16px);
+  }
+
+  .cleanup-grid {
+    grid-template-columns: 1fr;
   }
 }

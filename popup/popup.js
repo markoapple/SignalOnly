@@ -10,6 +10,8 @@ const webrtcState = document.getElementById("webrtcState");
 const profileId = document.getElementById("profileId");
 const versionTag = document.getElementById("versionTag");
 const switches = [...document.querySelectorAll(".switch[data-setting]")];
+const SITE_SCOPED_SETTINGS = new Set(["enabled", "fingerprintShield", "storageShield", "sensorShield", "behaviorNoise"]);
+const masterSwitchLabel = document.querySelector('.master-switch[data-setting="enabled"] > span');
 
 let settings = {};
 let context = {};
@@ -124,6 +126,9 @@ function render() {
   profileSelect.disabled = !hasSupportedPage;
   applyButton.disabled = !hasSupportedPage;
   resetButton.disabled = !hasSupportedPage;
+  if (masterSwitchLabel) {
+    masterSwitchLabel.textContent = hasSupportedPage ? "Current Site Protection" : "Protection Unavailable";
+  }
 
   proxyState.textContent = settings.enabled && settings.proxyEnabled
     ? `${settings.proxyHost}:${settings.proxyPort}`
@@ -143,7 +148,10 @@ function render() {
 
   switches.forEach((button) => {
     const active = Boolean(settings[button.dataset.setting]);
-    button.setAttribute("aria-pressed", String(active));
+    const unavailable = !hasSupportedPage && SITE_SCOPED_SETTINGS.has(button.dataset.setting);
+    button.disabled = unavailable;
+    button.setAttribute("aria-pressed", String(unavailable ? false : active));
+    button.title = unavailable ? "Unavailable on this page" : "";
   });
 }
 

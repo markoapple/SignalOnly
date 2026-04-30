@@ -184,10 +184,8 @@ select {
 }
 
 .switch > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
+  min-width: 0;
+  font-size: 12px;
   font-weight: 720;
 }
 
