@@ -94,6 +94,7 @@ h2 {
 h1 {
   font-size: clamp(52px, 6vw, 78px);
   line-height: 0.9;
+  font-family: "Marathon Shapiro 65", sans-serif;
 }
 
 h2 {
