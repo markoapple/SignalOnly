@@ -3,12 +3,13 @@
   --paper: #fffefa;
   --ink: #040404;
   --muted: #656159;
-  --line: rgba(4, 4, 4, 0.92);
-  --hair: rgba(4, 4, 4, 0.16);
-  --faint: rgba(4, 4, 4, 0.08);
+  --line: rgba(4, 4, 4, 0.82);
+  --hair: rgba(4, 4, 4, 0.14);
+  --faint: rgba(4, 4, 4, 0.07);
   --soft: #dfddd5;
   --accent: #ff006e;
   --danger: #ff4b1f;
+  --disabled: rgba(4, 4, 4, 0.38);
 }
 
 * {
@@ -33,9 +34,9 @@ textarea {
 }
 
 button {
-  border: 1px solid var(--line);
+  border: 1px solid var(--hair);
   border-radius: 2px;
-  background: var(--paper);
+  background: #fff;
   color: var(--ink);
   cursor: pointer;
   font-weight: 760;
@@ -52,7 +53,7 @@ textarea:focus-visible {
 .surface {
   width: min(1180px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 34px 0 56px;
+  padding: 36px 0 58px;
 }
 
 .mast {
@@ -60,7 +61,7 @@ textarea:focus-visible {
   grid-template-columns: 1fr auto;
   gap: 28px;
   align-items: start;
-  padding-bottom: 22px;
+  padding-bottom: 24px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -117,16 +118,17 @@ textarea {
 .overview {
   display: grid;
   grid-template-columns: 1.5fr 1.2fr 1.2fr 0.8fr;
-  margin: 14px 0 20px;
-  border-block: 1px solid var(--line);
+  margin: 16px 0 24px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
 }
 
 .overview div {
   display: grid;
   gap: 9px;
-  min-height: 74px;
-  padding: 15px 16px;
-  border-right: 1px solid var(--hair);
+  min-height: 76px;
+  padding: 16px 18px;
+  border-right: 1px solid var(--faint);
 }
 
 .overview div:last-child {
@@ -151,7 +153,7 @@ textarea {
 .sheet-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px 18px;
+  gap: 24px 20px;
 }
 
 .module,
@@ -160,14 +162,14 @@ textarea {
 .site-system,
 .config-system {
   background: var(--paper);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--faint);
+  border: 1px solid var(--hair);
+  border-top-color: var(--line);
 }
 
 .module,
 .profile-index,
 .profile-editor {
-  padding: 22px 20px;
+  padding: 24px 22px;
 }
 
 .span-2 {
@@ -183,7 +185,7 @@ textarea {
 }
 
 .module-head {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .module-head.compact {
@@ -245,6 +247,7 @@ select {
   min-height: 38px;
   padding: 6px 9px;
   text-align: left;
+  border-color: var(--line);
   border-radius: 2px;
 }
 
@@ -311,7 +314,7 @@ select {
 
 .row-list {
   display: grid;
-  border-top: 1px solid var(--hair);
+  border-top: 1px solid var(--faint);
 }
 
 .row-list.flush {
@@ -323,9 +326,9 @@ select {
   grid-template-columns: 1fr auto;
   gap: 14px;
   align-items: center;
-  min-height: 58px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--hair);
+  min-height: 60px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--faint);
 }
 
 .setting-row:last-child {
@@ -379,14 +382,14 @@ select {
 .profile-system {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 18px;
-  margin-top: 26px;
+  gap: 20px;
+  margin-top: 28px;
 }
 
 .profile-list {
   display: grid;
-  gap: 7px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 18px;
   background: transparent;
   border: 0;
 }
@@ -443,7 +446,7 @@ select {
 
 .button-cluster button:not(.button-primary):not(.danger) {
   background: #fff;
-  border-color: var(--hair);
+  border-color: var(--line);
 }
 
 .button-cluster button:not(.button-primary):not(.danger):hover {
@@ -463,8 +466,8 @@ select {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   background: transparent;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--hair);
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--faint);
 }
 
 .random-grid div {
@@ -482,9 +485,9 @@ select {
 }
 
 .page-rules {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--hair);
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--faint);
 }
 
 .cleanup-grid {
@@ -498,19 +501,21 @@ select {
   padding: 0 8px;
   font-size: 12px;
   border-color: var(--hair);
-  background: #fff;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
 }
 
 .module-switch[aria-pressed="true"] {
   background: var(--paper);
   border-color: var(--line);
+  color: var(--ink);
   box-shadow: inset 0 -4px 0 0 var(--accent);
 }
 
 .site-system,
 .config-system {
-  margin-top: 26px;
-  padding: 22px 20px;
+  margin-top: 28px;
+  padding: 24px 22px;
 }
 
 .site-editor {
@@ -525,7 +530,7 @@ select {
   display: grid;
   gap: 0;
   background: transparent;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--hair);
   font-size: 11px;
 }
 
@@ -563,11 +568,11 @@ textarea {
 .banner {
   display: grid;
   gap: 8px;
-  margin: 18px 0;
-  padding: 15px 18px;
+  margin: 20px 0;
+  padding: 16px 18px;
   background: var(--paper);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--faint);
+  border: 1px solid var(--hair);
+  border-top-color: var(--line);
 }
 
 .banner p {
@@ -611,11 +616,11 @@ textarea {
 }
 
 .exclusion-system {
-  margin-top: 26px;
-  padding: 22px 20px;
+  margin-top: 28px;
+  padding: 24px 22px;
   background: var(--paper);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--faint);
+  border: 1px solid var(--hair);
+  border-top-color: var(--line);
 }
 
 .exclusion-editor {
@@ -629,7 +634,7 @@ textarea {
   display: grid;
   gap: 0;
   background: transparent;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--hair);
 }
 
 .exclusion-row {
@@ -669,6 +674,19 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 16px;
+}
+
+button:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.58);
+  border-color: var(--hair);
+}
+
+.button-primary:disabled {
+  background: rgba(4, 4, 4, 0.14);
+  border-color: rgba(4, 4, 4, 0.14);
+  color: var(--disabled);
 }
 
 @media (max-width: 900px) {

@@ -20,7 +20,7 @@
             <span id="profileId">PROFILE --</span>
           </aside>
           <button class="switch-control" type="button" data-setting="enabled" aria-pressed="true" aria-label="Extension on/off">
-            <span>SignalOnly</span><i><b>ON</b><b>OFF</b></i>
+            <span>Protection</span><i><b>ON</b><b>OFF</b></i>
           </button>
         </div>
       </header>
@@ -74,7 +74,7 @@
             <label class="field short">
               <span>WebRTC</span>
               <select id="webRtcMode">
-                <option value="soft">Soft (public IP only)</option>
+                <option value="soft">Public IP Only</option>
                 <option value="strict">Strict (no non-proxied UDP)</option>
                 <option value="off">Default</option>
               </select>
@@ -83,7 +83,7 @@
           </div>
           <div class="row-list">
             <div class="setting-row">
-              <div><b>WebRTC / DNS leak blocking</b><span>Hides the local interface IP. "Soft" preserves WebRTC; "Strict" disables non-proxied UDP and pairs with a SOCKS proxy.</span></div>
+              <div><b>WebRTC / DNS leak blocking</b><span>Hides the local interface IP. "Public IP Only" preserves WebRTC; "Strict" disables non-proxied UDP and pairs with a SOCKS proxy.</span></div>
               <button class="switch-control small" type="button" data-setting="privacyControls" aria-pressed="true"><i><b>ON</b><b>OFF</b></i></button>
             </div>
             <div class="setting-row">
