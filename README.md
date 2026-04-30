@@ -1,44 +1,29 @@
-# SignalOnly Privacy Surface
+# SignalOnly
 
-Cool little privacy extension.
+SignalOnly is a browser extension that stops websites from fingerprinting and tracking you. Most privacy extensions are either placebo or they break the internet. SignalOnly is built to actually work.
 
-SignalOnly is a Manifest V3 Chrome extension prototype with two layers:
+It creates isolated cookie profiles per site, spoofs deep fingerprinting vectors, and strips out toxic UI elements like popups, sticky headers, and algorithmic recommendations. 
 
-- Global privacy surface: Tor SOCKS routing, browser privacy controls, WebRTC leak reduction, network header rules, third-party cookie isolation, and fingerprint surface reduction.
-- Site profiles: named, reversible profiles with their own cryptographic seed, fingerprint values, storage salts, and optional per-site page cleanup rules.
+It's safe by default: sensitive sites like banks and logins are automatically excluded so you don't get locked out of your accounts. :3c
 
-The design direction is flat, precise, editorial, and control-surface driven: light neutral base, black typography, hard rectangular switches, small mono metadata, and coded accent color per profile.
+## What it actually does
 
-## Reversibility
+- **Fingerprint Spoofing**: Feeds fake but consistent data to scripts checking Canvas, WebGL, AudioContext, DOMRects, Math precision, screen posture, plugins, and hardware concurrency.
+- **Cookie Isolation**: Enforces per-site cookie profiles. You can set cookies to keep, clear on tab close, or clear on profile switch. It also automatically sweeps known tracking cookies and caps first-party cookie lifetimes.
+- **UI Cleanup**: Visually removes algorithmic recommendations, vanity metrics, overlays, and sticky headers using safe, non-destructive DOM tagging.
+- **Network Routing**: Built-in SOCKS proxy support and WebRTC leak protection.
+- **Header Stripping**: Blocks declarative tracking headers (ETag, Last-Modified) on third-party requests.
 
-SignalOnly avoids destructive site cleanup. It does not delete browsing history, passwords, bookmarks, or site databases.
+## Why it doesn't break everything
 
-- Tor routing is reversed by disabling Tor mode, which clears the Chrome proxy setting.
-- Browser privacy settings are reversed by disabling the privacy surface, which clears extension-owned Chrome settings.
-- Network header rules are reversed by disabling the matching module, which removes dynamic DNR rules.
-- Site profiles are reversed by clearing the site assignment, disabling the site profile, or deleting the profile.
-- Page-level fingerprint patches are session-page changes. Turn the module off and reload the page to return that page to native browser values.
+Other anti-tracking tools aggressively block scripts or rewrite `localStorage`, which breaks form submissions, OAuth, and checkout flows. 
 
-## Load Unpacked
+SignalOnly takes a different approach. It leaves the core functionality intact but poisons the telemetry data websites try to extract. For extremely fragile domains (like payment gateways or SSO providers), it automatically disables shields so you don't trigger fraud alerts.
 
-1. Open `chrome://extensions`.
-2. Enable Developer Mode.
-3. Choose `Load unpacked`.
-4. Select this folder.
-5. Start Tor locally if Tor mode is enabled.
+## Installation
 
-Tor defaults:
+Load the `project` folder as an unpacked extension in your Chromium-based browser.
 
-- Tor daemon: `127.0.0.1:9050`
-- Tor Browser: often `127.0.0.1:9150`
-
-## Files
-
-- `manifest.json`: MV3 entry point.
-- `src/background/service-worker.js`: Tor proxy, Chrome privacy settings, DNR rules, randomized profiles, site profile registry.
-- `src/content/content.js`: page injection plus reversible site-scoped page cleanup.
-- `src/injected/fingerprint.js`: page-world fingerprint, storage, sensor, and PII surface patches.
-- `popup/`: compact control module.
-- `options/`: full SignalOnly settings surface.
-- `store-assets/`: Chrome Web Store campaign artwork.
-- `docs/reversibility.md`: operational reversibility notes.
+1. Go to `chrome://extensions`
+2. Enable "Developer mode"
+3. Click "Load unpacked" and select the extension directory.
