@@ -313,13 +313,13 @@ select {
   grid-template-columns: var(--switch-w);
   width: var(--switch-w);
   min-height: var(--control-h);
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
+  padding: 3px;
+  border: 1px solid var(--line);
+  background: #fff;
 }
 
 .switch-control.small i {
-  width: var(--switch-w);
+  width: calc(var(--switch-w) - 8px);
   height: var(--switch-h);
 }
 
