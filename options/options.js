@@ -25,23 +25,9 @@ const refreshJarsButton = document.getElementById("refreshJarsButton");
 const profileName = document.getElementById("profileName");
 const profileCodeInput = document.getElementById("profileCodeInput");
 const profileAccent = document.getElementById("profileAccent");
-const saveGlobalButton = document.getElementById("saveGlobalButton");
-const applySiteButton = document.getElementById("applySiteButton");
-const resetSiteButton = document.getElementById("resetSiteButton");
-const clearSiteCookiesButton = document.getElementById("clearSiteCookiesButton");
-const disableSiteButton = document.getElementById("disableSiteButton");
-const saveProfileButton = document.getElementById("saveProfileButton");
-const deleteProfileButton = document.getElementById("deleteProfileButton");
-const duplicateProfileButton = document.getElementById("duplicateProfileButton");
-const regenerateProfileButton = document.getElementById("regenerateProfileButton");
-const newProfileButton = document.getElementById("newProfileButton");
-const exportConfigButton = document.getElementById("exportConfigButton");
-const importConfigButton = document.getElementById("importConfigButton");
 const configBuffer = document.getElementById("configBuffer");
 const exclusionInput = document.getElementById("exclusionInput");
 const exclusionList = document.getElementById("exclusionList");
-const addExclusionButton = document.getElementById("addExclusionButton");
-const resetExclusionsButton = document.getElementById("resetExclusionsButton");
 const excludeCurrentSiteButton = document.getElementById("excludeCurrentSiteButton");
 const removeCurrentExclusionButton = document.getElementById("removeCurrentExclusionButton");
 const proxyModeStatus = document.getElementById("proxyModeStatus");
@@ -120,128 +106,145 @@ profileAccent.addEventListener("input", () => {
   document.documentElement.style.setProperty("--accent", profileAccent.value || "#ff006e");
 });
 
-saveGlobalButton.addEventListener("click", async () => {
-  collectGlobal();
-  const state = await send({ type: "saveSettings", settings: pickGlobalSettings(settings) });
-  setStatus(state?.ok ? "Settings saved" : "Settings save failed");
-  if (state?.ok) hydrate(state);
-});
+const buttonActions = {
+  async saveGlobalButton() {
+    collectGlobal();
+    const state = await send({ type: "saveSettings", settings: pickGlobalSettings(settings) });
+    setStatus(state?.ok ? "Settings saved" : "Settings save failed");
+    if (state?.ok) hydrate(state);
+  },
 
-applySiteButton.addEventListener("click", async () => {
-  const host = selectedHost();
-  if (!host) { setStatus("No host selected"); return; }
-  const modules = ensureDraftSiteModules();
-  const result = await send({
-    type: "applySiteProfile", host,
-    profileId: siteProfile.value || selectedProfileId,
-    enabled: siteEnabled.getAttribute("aria-pressed") === "true",
-    clearCookies: false,
-    modules,
-    cookiePolicy: siteCookiePolicy?.value || ""
-  });
-  let suffix = "";
-  if (result?.jarSaved || result?.jarRestored) suffix = ` (jar saved ${result.jarSaved}, restored ${result.jarRestored})`;
-  else if (result?.cookiesCleared > 0) suffix = ` (${result.cookiesCleared} cookies cleared)`;
-  setStatus(result?.ok ? `Site profile applied${suffix}` : result?.error || "Site profile failed");
-  if (result?.ok) { draftSiteModules = null; hydrate(result); await refreshJars(); }
-});
+  async applySiteButton() {
+    const host = selectedHost();
+    if (!host) { setStatus("No host selected"); return; }
+    const modules = ensureDraftSiteModules();
+    const result = await send({
+      type: "applySiteProfile", host,
+      profileId: siteProfile.value || selectedProfileId,
+      enabled: siteEnabled.getAttribute("aria-pressed") === "true",
+      clearCookies: false,
+      modules,
+      cookiePolicy: siteCookiePolicy?.value || ""
+    });
+    let suffix = "";
+    if (result?.jarSaved || result?.jarRestored) suffix = ` (jar saved ${result.jarSaved}, restored ${result.jarRestored})`;
+    else if (result?.cookiesCleared > 0) suffix = ` (${result.cookiesCleared} cookies cleared)`;
+    setStatus(result?.ok ? `Site profile applied${suffix}` : result?.error || "Site profile failed");
+    if (result?.ok) { draftSiteModules = null; hydrate(result); await refreshJars(); }
+  },
 
-disableSiteButton.addEventListener("click", async () => {
-  const host = selectedHost();
-  if (!host) return;
-  const result = await send({
-    type: "applySiteProfile", host,
-    profileId: siteProfile.value || selectedProfileId,
-    enabled: false,
-    modules: ensureDraftSiteModules(),
-    cookiePolicy: siteCookiePolicy?.value || ""
-  });
-  setStatus(result?.ok ? "Current site profile disabled" : result?.error || "Disable failed");
-  if (result?.ok) { draftSiteModules = null; hydrate(result); }
-});
+  async disableSiteButton() {
+    const host = selectedHost();
+    if (!host) return;
+    const result = await send({
+      type: "applySiteProfile", host,
+      profileId: siteProfile.value || selectedProfileId,
+      enabled: false,
+      modules: ensureDraftSiteModules(),
+      cookiePolicy: siteCookiePolicy?.value || ""
+    });
+    setStatus(result?.ok ? "Current site profile disabled" : result?.error || "Disable failed");
+    if (result?.ok) { draftSiteModules = null; hydrate(result); }
+  },
 
-resetSiteButton.addEventListener("click", async () => {
-  const host = selectedHost();
-  if (!host) return;
-  const result = await send({ type: "resetSiteProfile", host });
-  setStatus(result?.ok ? "Current site reset" : result?.error || "Reset failed");
-  if (result?.ok) { draftSiteModules = null; hydrate(result); await refreshJars(); }
-});
+  async resetSiteButton() {
+    const host = selectedHost();
+    if (!host) return;
+    const result = await send({ type: "resetSiteProfile", host });
+    setStatus(result?.ok ? "Current site reset" : result?.error || "Reset failed");
+    if (result?.ok) { draftSiteModules = null; hydrate(result); await refreshJars(); }
+  },
 
-clearSiteCookiesButton.addEventListener("click", async () => {
-  const host = selectedHost();
-  if (!host) { setStatus("No host selected"); return; }
-  const result = await send({ type: "clearSiteCookies", host });
-  setStatus(result?.ok ? `Cleared ${result.cleared} cookie${result.cleared !== 1 ? "s" : ""} for ${host}` : result?.error || "Cookie clear failed");
-});
+  async clearSiteCookiesButton() {
+    const host = selectedHost();
+    if (!host) { setStatus("No host selected"); return; }
+    const result = await send({ type: "clearSiteCookies", host });
+    setStatus(result?.ok ? `Cleared ${result.cleared} cookie${result.cleared !== 1 ? "s" : ""} for ${host}` : result?.error || "Cookie clear failed");
+  },
 
-saveProfileButton.addEventListener("click", async () => {
-  const profile = collectProfile();
-  const result = await send({ type: "saveProfile", profile });
-  setStatus(result?.ok ? "Profile saved" : result?.error || "Profile save failed");
-  if (result?.ok) { selectedProfileId = profile.id; hydrate(result); }
-});
+  async saveProfileButton() {
+    const profile = collectProfile();
+    const result = await send({ type: "saveProfile", profile });
+    setStatus(result?.ok ? "Profile saved" : result?.error || "Profile save failed");
+    if (result?.ok) { selectedProfileId = profile.id; hydrate(result); }
+  },
 
-newProfileButton.addEventListener("click", async () => {
-  const result = await send({ type: "createProfile" });
-  setStatus(result?.ok ? "New randomized profile created" : result?.error || "Profile create failed");
-  if (result?.ok) { selectedProfileId = result.settings.activeProfileId; hydrate(result); }
-});
-duplicateProfileButton.addEventListener("click", async () => {
-  const result = await send({ type: "duplicateProfile", profileId: selectedProfileId });
-  setStatus(result?.ok ? "Profile duplicated exactly" : result?.error || "Profile duplicate failed");
-  if (result?.ok) { selectedProfileId = result.settings.activeProfileId; hydrate(result); }
-});
-regenerateProfileButton.addEventListener("click", async () => {
-  const result = await send({ type: "regenerateProfile", profileId: selectedProfileId });
-  setStatus(result?.ok ? "Profile randomization regenerated" : result?.error || "Profile regenerate failed");
-  if (result?.ok) hydrate(result);
-});
-deleteProfileButton.addEventListener("click", async () => {
-  const result = await send({ type: "deleteProfile", profileId: selectedProfileId });
-  setStatus(result?.ok ? "Profile deleted" : result?.error || "Profile delete failed");
-  if (result?.ok) { selectedProfileId = result.settings.activeProfileId; hydrate(result); await refreshJars(); }
-});
+  async newProfileButton() {
+    const result = await send({ type: "createProfile" });
+    setStatus(result?.ok ? "New randomized profile created" : result?.error || "Profile create failed");
+    if (result?.ok) { selectedProfileId = result.settings.activeProfileId; hydrate(result); }
+  },
 
-addExclusionButton.addEventListener("click", async () => {
-  const candidate = exclusionInput.value || "";
-  if (!candidate.trim()) return;
-  const result = await send({ type: "addExclusion", host: candidate });
-  if (result?.ok) { exclusionInput.value = ""; setStatus(`Added ${result.host} to exclusions`); hydrate(result); }
-  else setStatus(result?.error || "Add exclusion failed");
-});
-resetExclusionsButton.addEventListener("click", async () => {
-  const result = await send({ type: "restoreDefaultExclusions" });
-  setStatus(result?.ok ? "Default exclusions restored" : result?.error || "Restore failed");
-  if (result?.ok) hydrate(result);
-});
-excludeCurrentSiteButton.addEventListener("click", async () => {
-  const host = selectedHost();
-  if (!host) { setStatus("No host selected"); return; }
-  const result = await send({ type: "addExclusion", host });
-  setStatus(result?.ok ? `Excluded ${result.host}` : result?.error || "Exclude failed");
-  if (result?.ok) hydrate(result);
-});
-removeCurrentExclusionButton.addEventListener("click", async () => {
-  const host = selectedHost();
-  if (!host) { setStatus("No host selected"); return; }
-  const result = await send({ type: "removeExclusion", host });
-  setStatus(result?.ok ? `Removed ${result.host} from exclusions` : result?.error || "Remove failed");
-  if (result?.ok) hydrate(result);
-});
-refreshJarsButton?.addEventListener("click", async () => { await refreshJars(); });
+  async duplicateProfileButton() {
+    const result = await send({ type: "duplicateProfile", profileId: selectedProfileId });
+    setStatus(result?.ok ? "Profile duplicated exactly" : result?.error || "Profile duplicate failed");
+    if (result?.ok) { selectedProfileId = result.settings.activeProfileId; hydrate(result); }
+  },
 
-exportConfigButton.addEventListener("click", async () => {
-  const result = await send({ type: "exportConfig" });
-  if (result?.ok) {
-    configBuffer.value = JSON.stringify(result.config, null, 2);
-    setStatus("Configuration exported");
-  } else setStatus(result?.error || "Export failed");
-});
-importConfigButton.addEventListener("click", async () => {
-  const result = await send({ type: "importConfig", config: configBuffer.value });
-  setStatus(result?.ok ? "Configuration imported" : result?.error || "Import failed");
-  if (result?.ok) { hydrate(result); await refreshJars(); }
+  async regenerateProfileButton() {
+    const result = await send({ type: "regenerateProfile", profileId: selectedProfileId });
+    setStatus(result?.ok ? "Profile randomization regenerated" : result?.error || "Profile regenerate failed");
+    if (result?.ok) hydrate(result);
+  },
+
+  async deleteProfileButton() {
+    const result = await send({ type: "deleteProfile", profileId: selectedProfileId });
+    setStatus(result?.ok ? "Profile deleted" : result?.error || "Profile delete failed");
+    if (result?.ok) { selectedProfileId = result.settings.activeProfileId; hydrate(result); await refreshJars(); }
+  },
+
+  async addExclusionButton() {
+    const candidate = exclusionInput.value || "";
+    if (!candidate.trim()) return;
+    const result = await send({ type: "addExclusion", host: candidate });
+    if (result?.ok) { exclusionInput.value = ""; setStatus(`Added ${result.host} to exclusions`); hydrate(result); }
+    else setStatus(result?.error || "Add exclusion failed");
+  },
+
+  async resetExclusionsButton() {
+    const result = await send({ type: "restoreDefaultExclusions" });
+    setStatus(result?.ok ? "Default exclusions restored" : result?.error || "Restore failed");
+    if (result?.ok) hydrate(result);
+  },
+
+  async excludeCurrentSiteButton() {
+    const host = selectedHost();
+    if (!host) { setStatus("No host selected"); return; }
+    const result = await send({ type: "addExclusion", host });
+    setStatus(result?.ok ? `Excluded ${result.host}` : result?.error || "Exclude failed");
+    if (result?.ok) hydrate(result);
+  },
+
+  async removeCurrentExclusionButton() {
+    const host = selectedHost();
+    if (!host) { setStatus("No host selected"); return; }
+    const result = await send({ type: "removeExclusion", host });
+    setStatus(result?.ok ? `Removed ${result.host} from exclusions` : result?.error || "Remove failed");
+    if (result?.ok) hydrate(result);
+  },
+
+  async refreshJarsButton() { await refreshJars(); },
+
+  async exportConfigButton() {
+    const result = await send({ type: "exportConfig" });
+    if (result?.ok) {
+      configBuffer.value = JSON.stringify(result.config, null, 2);
+      setStatus("Configuration exported");
+    } else setStatus(result?.error || "Export failed");
+  },
+
+  async importConfigButton() {
+    const result = await send({ type: "importConfig", config: configBuffer.value });
+    setStatus(result?.ok ? "Configuration imported" : result?.error || "Import failed");
+    if (result?.ok) { hydrate(result); await refreshJars(); }
+  }
+};
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[id]");
+  const action = buttonActions[button?.id];
+  if (!action) return;
+  await action();
 });
 
 async function refreshJars() {
