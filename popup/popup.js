@@ -204,7 +204,7 @@ function render() {
   } else if (settings.webRtcMode === "strict" || settings.proxyEnabled) {
     webrtcState.textContent = "Strict";
   } else if (settings.webRtcMode === "off") {
-    webrtcState.textContent = "Default";
+    webrtcState.textContent = "Browser default";
   } else {
     webrtcState.textContent = "Public IP Only";
   }

@@ -1,3 +1,19 @@
+import {
+  DEFAULT_SITE_MODULES,
+  deserializeCookieForSet,
+  effectiveSiteConfig as computeEffectiveSiteConfig,
+  getSiteAssignment as findSiteAssignment,
+  matchesDomainList,
+  normalizeHostList,
+  normalizeReloadRequiredIds,
+  sanitizeAssignmentCookiePolicy,
+  sanitizeCookiePolicy,
+  sanitizeHost,
+  sanitizeSiteModules,
+  serializeCookieJar,
+  resolveCookiePolicy
+} from "./pure.js";
+
 const SETTINGS_KEY = "signalonly.settings";
 const COOKIE_JAR_KEY = "signalonly.cookieJars";
 const RELOAD_REQUIRED_KEY = "signalonly.reloadRequired";
@@ -41,23 +57,6 @@ const DEFAULT_EXCLUDED_HOSTS = [
   "auth0.com", "okta.com", "duosecurity.com",
   "checkout.stripe.com", "js.stripe.com", "paypal.com", "www.paypal.com"
 ];
-
-const DEFAULT_SITE_MODULES = Object.freeze({
-  fingerprint: true,
-  storage: false,
-  sensors: true,
-  behavior: false,
-  piiShield: false,
-  blockServiceWorkers: false,
-  cleanup: {
-    recommendations: true,
-    comments: true,
-    metrics: true,
-    overlays: true,
-    sticky: false,
-    motion: true
-  }
-});
 
 const DEFAULT_SETTINGS = {
   schemaVersion: SCHEMA_VERSION,
@@ -238,12 +237,8 @@ async function signalReloadRequired(tabId) {
 async function hydrateReloadRequiredTabs() {
   if (!chrome.storage?.session) return;
   const data = await chrome.storage.session.get(RELOAD_REQUIRED_KEY).catch(() => ({}));
-  const ids = Array.isArray(data[RELOAD_REQUIRED_KEY]) ? data[RELOAD_REQUIRED_KEY] : [];
   reloadRequiredTabs.clear();
-  ids.forEach((id) => {
-    const numericId = Number(id);
-    if (Number.isInteger(numericId) && numericId > 0) reloadRequiredTabs.add(numericId);
-  });
+  normalizeReloadRequiredIds(data[RELOAD_REQUIRED_KEY]).forEach((id) => reloadRequiredTabs.add(id));
 }
 
 async function persistReloadRequiredTabs() {
@@ -397,33 +392,7 @@ async function getContentConfig(url) {
 }
 
 function effectiveSiteConfig(settings, host) {
-  const assignment = host ? getSiteAssignment(settings, host) : null;
-  const baseModules = structuredClone(DEFAULT_SITE_MODULES);
-  const globalDefaults = {
-    fingerprint: settings.fingerprintShield,
-    storage: settings.storageShield,
-    sensors: settings.sensorShield,
-    behavior: settings.behaviorNoise,
-    piiShield: settings.piiShield,
-    blockServiceWorkers: settings.blockServiceWorkers,
-    cleanup: baseModules.cleanup
-  };
-  if (!assignment) {
-    return { modules: globalDefaults, applyShields: settings.applyShieldsGlobally };
-  }
-  const overrides = assignment.modules || {};
-  return {
-    modules: {
-      fingerprint: "fingerprint" in overrides ? Boolean(overrides.fingerprint) : globalDefaults.fingerprint,
-      storage: "storage" in overrides ? Boolean(overrides.storage) : globalDefaults.storage,
-      sensors: "sensors" in overrides ? Boolean(overrides.sensors) : globalDefaults.sensors,
-      behavior: "behavior" in overrides ? Boolean(overrides.behavior) : globalDefaults.behavior,
-      piiShield: "piiShield" in overrides ? Boolean(overrides.piiShield) : globalDefaults.piiShield,
-      blockServiceWorkers: "blockServiceWorkers" in overrides ? Boolean(overrides.blockServiceWorkers) : globalDefaults.blockServiceWorkers,
-      cleanup: { ...baseModules.cleanup, ...(overrides.cleanup || {}) }
-    },
-    applyShields: Boolean(assignment.enabled)
-  };
+  return computeEffectiveSiteConfig(settings, host, getSiteAssignment);
 }
 
 async function applySiteProfile(host, profileId, enabled = true, clearCookies = false, modules = null, cookiePolicy = undefined) {
@@ -519,11 +488,7 @@ async function saveCookieJar(host, profileId) {
     const jars = await loadJars();
     jars[`${host}|${profileId}`] = {
       savedAt: Date.now(),
-      cookies: cookies.map((c) => ({
-        name: c.name, value: c.value, domain: c.domain, path: c.path,
-        secure: c.secure, httpOnly: c.httpOnly, sameSite: c.sameSite || "unspecified",
-        expirationDate: c.expirationDate, hostOnly: c.hostOnly, storeId: c.storeId
-      }))
+      cookies: serializeCookieJar(cookies)
     };
     await chrome.storage.local.set({ [COOKIE_JAR_KEY]: jars });
     return cookies.length;
@@ -538,20 +503,7 @@ async function restoreCookieJar(host, profileId) {
     if (!jar?.cookies?.length) return 0;
     let restored = 0;
     for (const c of jar.cookies) {
-      const scheme = c.secure ? "https" : "http";
-      const domain = (c.domain || host).replace(/^\./, "");
-      const url = `${scheme}://${domain}${c.path || "/"}`;
-      const setArgs = {
-        url, name: c.name, value: c.value, path: c.path,
-        secure: c.secure, httpOnly: c.httpOnly
-      };
-      // chrome.cookies.set rejects sameSite="unspecified" together with secure=false on some Chrome versions.
-      // Only forward sameSite when explicitly set to a non-default value.
-      if (c.sameSite && c.sameSite !== "unspecified") setArgs.sameSite = c.sameSite;
-      if (!c.hostOnly && c.domain) setArgs.domain = c.domain;
-      if (c.expirationDate && c.expirationDate * 1000 > Date.now()) setArgs.expirationDate = c.expirationDate;
-      if (c.storeId) setArgs.storeId = c.storeId;
-      const result = await chrome.cookies.set(setArgs).catch(() => null);
+      const result = await chrome.cookies.set(deserializeCookieForSet(c, host)).catch(() => null);
       if (result) restored += 1;
     }
     return restored;
@@ -913,39 +865,6 @@ function normalizeSiteAssignments(assignments) {
     };
   }
   return clean;
-}
-
-function sanitizeSiteModules(modules) {
-  if (!modules || typeof modules !== "object") return structuredClone(DEFAULT_SITE_MODULES);
-  const cleanup = modules.cleanup && typeof modules.cleanup === "object" ? modules.cleanup : {};
-  return {
-    fingerprint: "fingerprint" in modules ? Boolean(modules.fingerprint) : DEFAULT_SITE_MODULES.fingerprint,
-    storage: "storage" in modules ? Boolean(modules.storage) : DEFAULT_SITE_MODULES.storage,
-    sensors: "sensors" in modules ? Boolean(modules.sensors) : DEFAULT_SITE_MODULES.sensors,
-    behavior: "behavior" in modules ? Boolean(modules.behavior) : DEFAULT_SITE_MODULES.behavior,
-    piiShield: "piiShield" in modules ? Boolean(modules.piiShield) : DEFAULT_SITE_MODULES.piiShield,
-    blockServiceWorkers: "blockServiceWorkers" in modules ? Boolean(modules.blockServiceWorkers) : DEFAULT_SITE_MODULES.blockServiceWorkers,
-    cleanup: {
-      recommendations: "recommendations" in cleanup ? Boolean(cleanup.recommendations) : DEFAULT_SITE_MODULES.cleanup.recommendations,
-      comments: "comments" in cleanup ? Boolean(cleanup.comments) : DEFAULT_SITE_MODULES.cleanup.comments,
-      metrics: "metrics" in cleanup ? Boolean(cleanup.metrics) : DEFAULT_SITE_MODULES.cleanup.metrics,
-      overlays: "overlays" in cleanup ? Boolean(cleanup.overlays) : DEFAULT_SITE_MODULES.cleanup.overlays,
-      sticky: "sticky" in cleanup ? Boolean(cleanup.sticky) : DEFAULT_SITE_MODULES.cleanup.sticky,
-      motion: "motion" in cleanup ? Boolean(cleanup.motion) : DEFAULT_SITE_MODULES.cleanup.motion
-    }
-  };
-}
-
-function sanitizeCookiePolicy(value, fallback = "keep") {
-  return ["keep","session","clear-on-switch"].includes(value) ? value : fallback;
-}
-
-function sanitizeAssignmentCookiePolicy(value) {
-  return value === "" || value == null ? "" : sanitizeCookiePolicy(value, "");
-}
-
-function resolveCookiePolicy(assignment, profile) {
-  return sanitizeAssignmentCookiePolicy(assignment?.cookiePolicy) || sanitizeCookiePolicy(profile?.cookiePolicy, "keep");
 }
 
 function createRandomProfile({ name = "Profile", code = "PR-00", accent = "#ff006e", defaultCleanup } = {}) {
@@ -1311,15 +1230,7 @@ function excludedDomainCondition(domainExclusions) {
 }
 
 function getSiteAssignment(settings, host) {
-  if (!host) return null;
-  const exact = settings.siteAssignments[host];
-  if (exact) return exact;
-  const parts = host.split(".");
-  for (let index = 1; index < parts.length - 1; index += 1) {
-    const parent = parts.slice(index).join(".");
-    if (settings.siteAssignments[parent]) return settings.siteAssignments[parent];
-  }
-  return null;
+  return findSiteAssignment(settings, host);
 }
 
 function deleteAssignmentsForProfile(settings, profileId) {
@@ -1394,14 +1305,6 @@ function getHost(url) {
   } catch { return ""; }
 }
 function isExcluded(host, settings) { return host ? matchesDomainList(host, settings.excludedHosts || []) : false; }
-function matchesDomainList(host, list) {
-  if (!host || !Array.isArray(list)) return false;
-  return list.some((entry) => entry && (host === entry || host.endsWith(`.${entry}`)));
-}
-function normalizeHostList(list) {
-  if (!Array.isArray(list)) return [];
-  return [...new Set(list.map(sanitizeHost).filter(Boolean))].slice(0, 200);
-}
 
 function buildPacScript(proxyHost, proxyPort, excludedHosts) {
   const host = String(proxyHost || DEFAULT_SETTINGS.proxyHost).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
@@ -1426,11 +1329,6 @@ function FindProxyForURL(url, host) {
 `.trim();
 }
 
-function sanitizeHost(host) {
-  return String(host || "").trim().toLowerCase()
-    .replace(/^https?:\/\//, "").replace(/\/.*$/, "")
-    .replace(/^www\./, "").replace(/[^a-z0-9.-]/g, "");
-}
 function sanitizeId(value) {
   return String(value).trim().toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || createProfileId();

@@ -1,11 +1,3 @@
-// Pure functions extracted for unit testing. Mirrors the production logic in
-// src/background/service-worker.js. Keeping a single source of truth would
-// require refactoring the service worker into ES modules; for now these are
-// kept in sync by hand and exercised by tests/normalize.test.js.
-//
-// If you change a function in service-worker.js that's mirrored here, update
-// this file in the same commit.
-
 export const DEFAULT_SITE_MODULES = Object.freeze({
   fingerprint: true,
   storage: false,
@@ -65,7 +57,7 @@ export function sanitizeSiteModules(modules) {
 }
 
 export function sanitizeCookiePolicy(value, fallback = "keep") {
-  return ["keep","session","clear-on-switch"].includes(value) ? value : fallback;
+  return ["keep", "session", "clear-on-switch"].includes(value) ? value : fallback;
 }
 
 export function sanitizeAssignmentCookiePolicy(value) {
@@ -134,24 +126,33 @@ export function getSiteAssignment(settings, host) {
 
 export function serializeCookieJar(cookies) {
   return cookies.map((c) => ({
-    name: c.name, value: c.value, domain: c.domain, path: c.path,
-    secure: c.secure, httpOnly: c.httpOnly,
+    name: c.name,
+    value: c.value,
+    domain: c.domain,
+    path: c.path,
+    secure: c.secure,
+    httpOnly: c.httpOnly,
     sameSite: c.sameSite || "unspecified",
-    expirationDate: c.expirationDate, hostOnly: c.hostOnly, storeId: c.storeId
+    expirationDate: c.expirationDate,
+    hostOnly: c.hostOnly,
+    storeId: c.storeId
   }));
 }
 
-export function deserializeCookieForSet(c, fallbackHost) {
-  const scheme = c.secure ? "https" : "http";
-  const domain = (c.domain || fallbackHost).replace(/^\./, "");
-  const url = `${scheme}://${domain}${c.path || "/"}`;
+export function deserializeCookieForSet(cookie, fallbackHost, now = Date.now()) {
+  const scheme = cookie.secure ? "https" : "http";
+  const domain = (cookie.domain || fallbackHost).replace(/^\./, "");
   const setArgs = {
-    url, name: c.name, value: c.value, path: c.path,
-    secure: c.secure, httpOnly: c.httpOnly
+    url: `${scheme}://${domain}${cookie.path || "/"}`,
+    name: cookie.name,
+    value: cookie.value,
+    path: cookie.path,
+    secure: cookie.secure,
+    httpOnly: cookie.httpOnly
   };
-  if (c.sameSite && c.sameSite !== "unspecified") setArgs.sameSite = c.sameSite;
-  if (!c.hostOnly && c.domain) setArgs.domain = c.domain;
-  if (c.expirationDate && c.expirationDate * 1000 > Date.now()) setArgs.expirationDate = c.expirationDate;
-  if (c.storeId) setArgs.storeId = c.storeId;
+  if (cookie.sameSite && cookie.sameSite !== "unspecified") setArgs.sameSite = cookie.sameSite;
+  if (!cookie.hostOnly && cookie.domain) setArgs.domain = cookie.domain;
+  if (cookie.expirationDate && cookie.expirationDate * 1000 > now) setArgs.expirationDate = cookie.expirationDate;
+  if (cookie.storeId) setArgs.storeId = cookie.storeId;
   return setArgs;
 }

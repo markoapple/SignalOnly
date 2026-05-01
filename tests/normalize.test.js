@@ -14,7 +14,7 @@ import {
   getSiteAssignment,
   serializeCookieJar,
   deserializeCookieForSet
-} from "./_helpers.js";
+} from "../src/background/pure.js";
 
 test("sanitizeHost strips scheme/path/www and lowercases", () => {
   assert.equal(sanitizeHost("https://www.Example.com/path?q=1"), "example.com");
