@@ -521,7 +521,7 @@ function ensureDraftSiteModules() {
     || context.effectiveModules
     || defaults.siteModules
     || { fingerprint: true, storage: false, sensors: true, behavior: false, piiShield: false, blockServiceWorkers: false,
-         cleanup: { recommendations: true, comments: true, metrics: true, overlays: true, sticky: false, motion: true } };
+         cleanup: { recommendations: false, comments: false, metrics: false, overlays: false, sticky: false, motion: false } };
   draftSiteModules = structuredClone(base);
   if (!draftSiteModules.cleanup) draftSiteModules.cleanup = {};
   return draftSiteModules;

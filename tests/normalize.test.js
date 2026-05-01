@@ -47,9 +47,22 @@ test("sanitizeSiteModules fills defaults from missing fields", () => {
   assert.deepEqual(result.cleanup, DEFAULT_SITE_MODULES.cleanup);
 });
 
+test("site cleanup defaults to off unless explicitly enabled", () => {
+  assert.deepEqual(DEFAULT_SITE_MODULES.cleanup, {
+    recommendations: false,
+    comments: false,
+    metrics: false,
+    overlays: false,
+    sticky: false,
+    motion: false
+  });
+  const result = sanitizeSiteModules({});
+  assert.deepEqual(result.cleanup, DEFAULT_SITE_MODULES.cleanup);
+});
+
 test("sanitizeSiteModules accepts partial cleanup overrides", () => {
-  const result = sanitizeSiteModules({ cleanup: { recommendations: false } });
-  assert.equal(result.cleanup.recommendations, false);
+  const result = sanitizeSiteModules({ cleanup: { recommendations: true } });
+  assert.equal(result.cleanup.recommendations, true);
   assert.equal(result.cleanup.comments, DEFAULT_SITE_MODULES.cleanup.comments);
 });
 

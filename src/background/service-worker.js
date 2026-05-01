@@ -381,8 +381,9 @@ async function getContentConfig(url) {
   // Visual cleanup is independent of fingerprint shields. It only requires
   // the extension to be enabled, the host not excluded, the site assigned
   // and enabled, and a profile available for the site styling tokens.
+  const cleanup = effective.modules?.cleanup || {};
   const cleanupEnabled = Boolean(
-    settings.enabled && !excluded && profile && siteEnabled
+    settings.enabled && !excluded && profile && siteEnabled && hasEnabledCleanup(cleanup)
   );
 
   return {
@@ -460,6 +461,10 @@ async function applySiteProfile(host, profileId, enabled = true, clearCookies = 
   await notifyHost(cleanHost);
   await updateActiveBadge();
   return { ok: true, cookiesCleared, jarSaved, jarRestored, cookieStatus, ...(await getState(`https://${cleanHost}/`)) };
+}
+
+function hasEnabledCleanup(cleanup) {
+  return Boolean(cleanup && Object.values(cleanup).some(Boolean));
 }
 
 async function updateSiteModules(host, modules) {
@@ -1117,12 +1122,12 @@ function createRandomProfile({ name = "Profile", code = "PR-00", accent = "#ff00
     name: String(name).trim().slice(0, 32) || "Profile",
     code, accent: sanitizeColor(accent) || "#ff006e",
     defaultCleanup: {
-      recommendations: defaultCleanup?.recommendations ?? true,
-      comments: defaultCleanup?.comments ?? true,
-      metrics: defaultCleanup?.metrics ?? true,
-      overlays: defaultCleanup?.overlays ?? true,
+      recommendations: defaultCleanup?.recommendations ?? false,
+      comments: defaultCleanup?.comments ?? false,
+      metrics: defaultCleanup?.metrics ?? false,
+      overlays: defaultCleanup?.overlays ?? false,
       sticky: defaultCleanup?.sticky ?? false,
-      motion: defaultCleanup?.motion ?? true
+      motion: defaultCleanup?.motion ?? false
     },
     cookiePolicy: "keep",
     randomization: {

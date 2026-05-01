@@ -6,12 +6,12 @@ export const DEFAULT_SITE_MODULES = Object.freeze({
   piiShield: false,
   blockServiceWorkers: false,
   cleanup: {
-    recommendations: true,
-    comments: true,
-    metrics: true,
-    overlays: true,
+    recommendations: false,
+    comments: false,
+    metrics: false,
+    overlays: false,
     sticky: false,
-    motion: true
+    motion: false
   }
 });
 

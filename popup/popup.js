@@ -135,14 +135,19 @@ reloadButton?.addEventListener("click", async () => {
 
 function ensurePendingModules() {
   if (!pendingSiteModules) {
-    pendingSiteModules = structuredClone(
+    const modules = structuredClone(
       context.assignment?.modules
       || context.effectiveModules
-      || { fingerprint: true, storage: false, sensors: true, behavior: false, piiShield: false, blockServiceWorkers: false,
-           cleanup: { recommendations: true, comments: true, metrics: true, overlays: true, sticky: false, motion: true } }
+      || { fingerprint: true, storage: false, sensors: true, behavior: false, piiShield: false, blockServiceWorkers: false }
     );
+    if (!context.assignment) modules.cleanup = cleanupOff();
+    pendingSiteModules = modules;
   }
   return pendingSiteModules;
+}
+
+function cleanupOff() {
+  return { recommendations: false, comments: false, metrics: false, overlays: false, sticky: false, motion: false };
 }
 
 function hydrate(state) {
