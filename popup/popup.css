@@ -54,7 +54,7 @@ select {
   max-height: 680px;
   padding: 10px;
   background: var(--base);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .top {
