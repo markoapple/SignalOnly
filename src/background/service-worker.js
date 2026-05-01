@@ -427,12 +427,12 @@ async function applySiteProfile(host, profileId, enabled = true, clearCookies = 
   const policySaysClear = profileChanged && (oldPolicy === "clear-on-switch" || newPolicy === "clear-on-switch");
   const shouldClear = clearCookies || policySaysClear || (profileChanged && settings.autoClearOnSwitch);
 
+  const slotControl = ensureCookieSlotControl(settings, cleanHost);
   let jarSaved = 0;
   let jarRestored = 0;
   let cookieStatus = null;
   if (profileChanged && oldAssignment) {
-    const activeSlot = ensureCookieSlotControl(settings, cleanHost).activeSlotId;
-    cookieStatus = await saveCookieJar(cleanHost, slotJarId(activeSlot));
+    cookieStatus = await saveCookieJar(slotControl.scopeHost, slotJarId(slotControl.activeSlotId));
     jarSaved = cookieStatus.saved || 0;
   }
 
@@ -447,12 +447,11 @@ async function applySiteProfile(host, profileId, enabled = true, clearCookies = 
 
   let cookiesCleared = 0;
   if (profileChanged) {
-    cookiesCleared = (await clearSiteCookiesForHost(cleanHost)).cleared || 0;
-    const activeSlot = ensureCookieSlotControl(settings, cleanHost).activeSlotId;
-    cookieStatus = await restoreCookieJar(cleanHost, slotJarId(activeSlot));
+    cookiesCleared = (await clearSiteCookiesForHost(slotControl.scopeHost)).cleared || 0;
+    cookieStatus = await restoreCookieJar(slotControl.scopeHost, slotJarId(slotControl.activeSlotId));
     jarRestored = cookieStatus.restored || 0;
   } else if (shouldClear) {
-    cookiesCleared = (await clearSiteCookiesForHost(cleanHost)).cleared || 0;
+    cookiesCleared = (await clearSiteCookiesForHost(slotControl.scopeHost)).cleared || 0;
   }
 
   await updateDynamicRules();
@@ -708,7 +707,7 @@ async function resetSiteProfile(host) {
   const assignment = settings.siteAssignments[cleanHost];
   if (assignment) {
     const control = ensureCookieSlotControl(settings, cleanHost);
-    await saveCookieJar(cleanHost, slotJarId(control.activeSlotId));
+    await saveCookieJar(control.scopeHost, slotJarId(control.activeSlotId));
   }
   delete settings.siteAssignments[cleanHost];
   await setSettings(settings);
@@ -727,7 +726,7 @@ async function wipeSite(host) {
   const assignment = settings.siteAssignments[cleanHost];
   if (assignment) {
     const control = ensureCookieSlotControl(settings, cleanHost);
-    await saveCookieJar(cleanHost, slotJarId(control.activeSlotId));
+    await saveCookieJar(control.scopeHost, slotJarId(control.activeSlotId));
   }
   delete settings.siteAssignments[cleanHost];
   await setSettings(settings);
