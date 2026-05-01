@@ -36,8 +36,6 @@
 html,
 body {
   width: 392px;
-  height: 600px;
-  max-height: 600px;
   margin: 0;
   background: var(--base);
   color: var(--ink);
@@ -61,8 +59,6 @@ select {
 
 .popup {
   width: 392px;
-  height: 600px;
-  max-height: 600px;
   padding: 8px;
   background: var(--base);
   overflow: hidden;
