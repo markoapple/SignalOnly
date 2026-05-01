@@ -150,8 +150,10 @@ const buttonActions = {
   async resetSiteButton() {
     const host = selectedHost();
     if (!host) return;
-    const result = await send({ type: "resetSiteProfile", host });
-    setStatus(result?.ok ? "Current site reset" : result?.error || "Reset failed");
+    const ok = confirm(`WIPE ${host}?\n\nThis removes the SignalOnly site rule and clears current cookies plus browser storage for this site.`);
+    if (!ok) return;
+    const result = await send({ type: "wipeSite", host });
+    setStatus(result?.ok ? `Site wiped (${result.cookiesCleared || 0} cookies cleared)` : result?.error || "Wipe failed");
     if (result?.ok) { draftSiteModules = null; hydrate(result); await refreshJars(); }
   },
 
@@ -224,6 +226,22 @@ const buttonActions = {
   },
 
   async refreshJarsButton() { await refreshJars(); },
+
+  async saveCurrentJarButton() {
+    const host = selectedHost();
+    if (!host) { setStatus("No host selected"); return; }
+    const result = await send({ type: "saveCookieSlot", host });
+    setStatus(result?.ok ? formatCookieStatus(result.cookieStatus) : result?.error || "Cookie save failed");
+    if (result?.ok) { hydrate(result); await refreshJars(); }
+  },
+
+  async restoreCurrentJarButton() {
+    const host = selectedHost();
+    if (!host) { setStatus("No host selected"); return; }
+    const result = await send({ type: "restoreCookieSlot", host });
+    setStatus(result?.ok ? formatCookieStatus(result.cookieStatus) : result?.error || "Cookie restore failed");
+    if (result?.ok) { hydrate(result); await refreshJars(); }
+  },
 
   async exportConfigButton() {
     const result = await send({ type: "exportConfig" });
@@ -459,12 +477,13 @@ function renderJars() {
     row.className = "jar-row";
     const profile = getProfile(jar.profileId);
     const host = document.createElement("b"); host.textContent = jar.host;
-    const prof = document.createElement("span"); prof.textContent = profile ? `${profile.name} (${profile.code})` : jar.profileId;
+    const prof = document.createElement("span");
+    prof.textContent = jar.slotId ? `Slot: ${jar.slotId}` : profile ? `${profile.name} (${profile.code})` : jar.profileId;
     const count = document.createElement("span"); count.textContent = `${jar.cookieCount} cookies`;
     const date = document.createElement("small"); date.textContent = jar.savedAt ? new Date(jar.savedAt).toLocaleString() : "--";
     const del = document.createElement("button"); del.type = "button"; del.textContent = "Delete";
     del.addEventListener("click", async () => {
-      await send({ type: "deleteCookieJar", host: jar.host, profileId: jar.profileId });
+      await send({ type: "deleteCookieJar", host: jar.host, profileId: jar.profileId, slotId: jar.slotId });
       await refreshJars();
     });
     row.append(host, prof, count, date, del);
@@ -529,6 +548,18 @@ function pickGlobalSettings(s) {
 
 function setStatus(text) { statusLine.textContent = text; }
 function shortHex(value, length = 10) { return value ? `${String(value).slice(0, length).toUpperCase()}...` : "--"; }
+
+function formatCookieStatus(status) {
+  if (!status) return "Cookie jar updated";
+  const parts = [];
+  if (status.saved) parts.push(`${status.saved} saved`);
+  if (status.cleared) parts.push(`${status.cleared} cleared`);
+  if (status.restored) parts.push(`${status.restored} restored`);
+  if (status.expired) parts.push(`${status.expired} expired`);
+  if (status.blocked) parts.push(`${status.blocked} blocked`);
+  if (status.error) parts.push(status.error);
+  return parts.length ? parts.join(" / ") : "Cookie jar ready";
+}
 
 async function send(message) {
   try { return await chrome.runtime.sendMessage(message); }

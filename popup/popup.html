@@ -46,6 +46,23 @@
         <select id="profileSelect"></select>
       </label>
 
+      <section class="cookie-panel" aria-label="Cookie slot controls">
+        <div class="cookie-head">
+          <div>
+            <span>Cookie Slot</span>
+            <b id="cookieScopeLabel">Shared domain</b>
+          </div>
+          <button id="cookieScopeButton" type="button">Split Subdomains</button>
+        </div>
+        <select id="cookieSlotSelect"></select>
+        <div class="cookie-actions">
+          <button id="saveCookieSlotButton" type="button">Save Jar</button>
+          <button id="restoreCookieSlotButton" type="button">Restore Jar</button>
+          <button id="cloneCookieSlotButton" type="button">Clone Slot</button>
+        </div>
+        <small id="cookieStatus">Cookies and storage use separate isolation layers.</small>
+      </section>
+
       <section class="switches" aria-label="Site privacy modules">
         <button class="switch master-switch" type="button" data-site-toggle="enabled" aria-pressed="false" aria-label="Current site protection on/off">
           <span>Current Site Protection</span><i><b>ON</b><b>OFF</b></i>
@@ -82,7 +99,7 @@
 
       <footer class="actions">
         <button id="applyButton" class="primary" type="button">Apply to Current Site</button>
-        <button id="resetButton" type="button">Reset Site</button>
+        <button id="resetButton" class="danger" type="button">WIPE Site</button>
         <button id="optionsButton" type="button">Settings</button>
       </footer>
     </main>

@@ -180,6 +180,7 @@ textarea {
 .profile-index,
 .profile-editor,
 .site-system,
+.jar-system,
 .config-system {
   background: var(--paper);
   border: 1px solid var(--hair);
@@ -533,6 +534,7 @@ select {
 }
 
 .site-system,
+.jar-system,
 .config-system {
   margin-top: 28px;
   padding: 24px 22px;
@@ -554,7 +556,17 @@ select {
   font-size: 11px;
 }
 
-.site-row {
+.jar-table {
+  display: grid;
+  gap: 0;
+  margin-top: 14px;
+  background: transparent;
+  border-top: 1px solid var(--hair);
+  font-size: 11px;
+}
+
+.site-row,
+.jar-row {
   display: grid;
   grid-template-columns: 1.4fr 1fr 96px 120px;
   gap: 14px;
@@ -565,7 +577,12 @@ select {
   border-bottom: 1px solid var(--faint);
 }
 
-.site-row button {
+.jar-row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 96px 150px auto;
+}
+
+.site-row button,
+.jar-row button {
   min-height: 30px;
 }
 
@@ -708,6 +725,7 @@ textarea {
 .profile-index,
 .profile-editor,
 .site-system,
+.jar-system,
 .exclusion-system,
 .config-system {
   min-width: 0;
@@ -717,6 +735,7 @@ textarea {
 .profile-index > *,
 .profile-editor > *,
 .site-system > *,
+.jar-system > *,
 .exclusion-system > *,
 .config-system > * {
   min-width: 0;
@@ -788,8 +807,13 @@ textarea {
   grid-template-columns: minmax(180px, 1fr) minmax(180px, 260px) minmax(160px, 190px);
 }
 
-.site-row {
+.site-row,
+.jar-row {
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(72px, 96px) minmax(92px, 120px);
+}
+
+.jar-row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(72px, 96px) minmax(120px, 150px) auto;
 }
 
 .exclusion-row {
@@ -879,6 +903,11 @@ button:disabled {
   .site-editor,
   .site-row {
     grid-template-columns: 1fr;
+  }
+
+  .jar-row {
+    grid-template-columns: 1fr;
+    padding: 10px 12px;
   }
 
   .mast-meta,

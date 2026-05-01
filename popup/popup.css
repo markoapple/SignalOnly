@@ -36,7 +36,7 @@
 html,
 body {
   width: 392px;
-  max-height: 600px;
+  max-height: 680px;
   margin: 0;
   background: var(--base);
   color: var(--ink);
@@ -51,10 +51,10 @@ select {
 
 .popup {
   width: 392px;
-  max-height: 600px;
+  max-height: 680px;
   padding: 10px;
   background: var(--base);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .top {
@@ -157,9 +157,11 @@ select {
   margin-top: 8px;
 }
 
-.profile-row span {
+.profile-row span,
+.cookie-head span {
   color: var(--muted);
   font-size: 9px;
+  text-transform: uppercase;
 }
 
 select {
@@ -171,6 +173,55 @@ select {
   background: var(--paper);
   color: var(--ink);
   font-weight: 700;
+}
+
+.cookie-panel {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.cookie-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.cookie-head b {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.cookie-head button,
+.cookie-actions button {
+  min-height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 820;
+}
+
+.cookie-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.cookie-panel small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .switches {
@@ -317,6 +368,12 @@ select {
 .actions .primary {
   background: var(--ink);
   color: white;
+}
+
+.actions .danger {
+  background: var(--warn);
+  border-color: var(--line);
+  color: var(--ink);
 }
 
 select:disabled,

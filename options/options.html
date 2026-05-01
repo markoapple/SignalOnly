@@ -178,7 +178,7 @@
           <div class="button-cluster">
             <button id="applySiteButton" class="button-primary" type="button">Apply to Selected Site</button>
             <button id="disableSiteButton" type="button">Disable Selected Site</button>
-            <button id="resetSiteButton" type="button">Reset Selected Site</button>
+            <button id="resetSiteButton" class="danger" type="button">WIPE Selected Site</button>
             <button id="clearSiteCookiesButton" type="button">Clear Site Cookies</button>
           </div>
         </header>
@@ -214,9 +214,13 @@
       <section class="jar-system">
         <header class="editor-head">
           <div><p class="micro">08B / COOKIE JARS</p><h2>Saved Cookie Jars</h2></div>
-          <div class="button-cluster"><button id="refreshJarsButton" type="button">Refresh</button></div>
+          <div class="button-cluster">
+            <button id="saveCurrentJarButton" type="button">Save Current Site Jar</button>
+            <button id="restoreCurrentJarButton" type="button">Restore Current Site Jar</button>
+            <button id="refreshJarsButton" type="button">Refresh</button>
+          </div>
         </header>
-        <p class="section-note">Per {host, profile} cookie snapshots. Created on profile switch and on session-policy tab close. Restored when you switch back to that profile.</p>
+        <p class="section-note">Cookie slots are saved per site scope and can be switched independently from fingerprint profiles. Storage isolation is separate: assigned sites use profile salts for localStorage / IndexedDB / Cache / BroadcastChannel.</p>
         <div class="jar-table" id="jarTable"></div>
       </section>
 

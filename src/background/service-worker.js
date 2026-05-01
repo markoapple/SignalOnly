@@ -17,7 +17,7 @@ import {
 const SETTINGS_KEY = "signalonly.settings";
 const COOKIE_JAR_KEY = "signalonly.cookieJars";
 const RELOAD_REQUIRED_KEY = "signalonly.reloadRequired";
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 const HEADER_RULE_ID_BASE = 7100;
 const PER_SITE_HEADER_RULE_ID_BASE = 7200;
@@ -47,6 +47,8 @@ const RESOURCE_TYPES = [
 
 const ACCENTS = ["#ff006e", "#0057ff", "#00c2d1", "#ff4b1f"];
 const PROFILE_NAMES = ["Standard", "Strict", "Travel", "Accounts"];
+const DEFAULT_COOKIE_SLOT_ID = "main";
+const DEFAULT_COOKIE_SLOT_NAME = "Main";
 
 const DEFAULT_EXCLUDED_HOSTS = [
   "accounts.google.com", "myaccount.google.com", "oauth2.googleapis.com",
@@ -85,6 +87,7 @@ const DEFAULT_SETTINGS = {
   activeProfileId: "",
   profiles: [],
   siteAssignments: {},
+  cookieSlots: {},
   excludedHosts: [],
   excludedHostsSeeded: false,
   lastProxyMode: "disabled"
@@ -182,7 +185,13 @@ async function handleMessage(message, sender) {
     case "applySiteProfile": return applySiteProfile(message.host, message.profileId, message.enabled, message.clearCookies, message.modules, message.cookiePolicy);
     case "updateSiteModules": return updateSiteModules(message.host, message.modules);
     case "resetSiteProfile": return resetSiteProfile(message.host);
+    case "wipeSite": return wipeSite(message.host);
     case "clearSiteCookies": return clearSiteCookiesForHost(message.host);
+    case "saveCookieSlot": return saveCookieSlot(message.host, message.slotId);
+    case "restoreCookieSlot": return restoreCookieSlot(message.host, message.slotId);
+    case "switchCookieSlot": return switchCookieSlot(message.host, message.slotId);
+    case "cloneCookieSlot": return cloneCookieSlot(message.host, message.name);
+    case "updateCookieSlotScope": return updateCookieSlotScope(message.host, message.scope);
     case "injectShield": return injectShieldFromBackground(sender?.tab?.id, sender?.frameId, message.bootstrap);
     case "createProfile": return createProfileFromRequest(message);
     case "duplicateProfile": return duplicateProfile(message.profileId);
@@ -190,7 +199,7 @@ async function handleMessage(message, sender) {
     case "saveProfile": return saveProfile(message.profile);
     case "deleteProfile": return deleteProfile(message.profileId);
     case "getCookieJars": return getCookieJars();
-    case "deleteCookieJar": return deleteCookieJar(message.host, message.profileId);
+    case "deleteCookieJar": return deleteCookieJar(message.host, message.profileId || message.slotId);
     case "signalReloadRequired": return signalReloadRequired(sender?.tab?.id);
     case "exportConfig": return exportConfig();
     case "importConfig": return importConfig(message.config);
@@ -208,6 +217,7 @@ async function getState(url = "") {
   const assignment = host ? getSiteAssignment(settings, host) : null;
   const currentProfile = getProfile(settings, assignment?.profileId || settings.activeProfileId);
   const telemetry = await getTelemetry(settings, host);
+  const cookieSession = host ? await getCookieSession(settings, host) : null;
   return {
     settings,
     defaults: { excludedHosts: normalizeHostList(DEFAULT_EXCLUDED_HOSTS), siteModules: structuredClone(DEFAULT_SITE_MODULES) },
@@ -219,6 +229,7 @@ async function getState(url = "") {
       assignment,
       effectiveModules: host ? effectiveSiteConfig(settings, host).modules : null,
       currentProfile,
+      cookieSession,
       excluded: host ? isExcluded(host, settings) : false,
       defaultExcluded: host ? matchesDomainList(host, DEFAULT_EXCLUDED_HOSTS) : false,
       reloadRequired
@@ -418,8 +429,11 @@ async function applySiteProfile(host, profileId, enabled = true, clearCookies = 
 
   let jarSaved = 0;
   let jarRestored = 0;
+  let cookieStatus = null;
   if (profileChanged && oldAssignment) {
-    jarSaved = await saveCookieJar(cleanHost, oldAssignment.profileId);
+    const activeSlot = ensureCookieSlotControl(settings, cleanHost).activeSlotId;
+    cookieStatus = await saveCookieJar(cleanHost, slotJarId(activeSlot));
+    jarSaved = cookieStatus.saved || 0;
   }
 
   settings.siteAssignments[cleanHost] = {
@@ -434,7 +448,9 @@ async function applySiteProfile(host, profileId, enabled = true, clearCookies = 
   let cookiesCleared = 0;
   if (profileChanged) {
     cookiesCleared = (await clearSiteCookiesForHost(cleanHost)).cleared || 0;
-    jarRestored = await restoreCookieJar(cleanHost, profile.id);
+    const activeSlot = ensureCookieSlotControl(settings, cleanHost).activeSlotId;
+    cookieStatus = await restoreCookieJar(cleanHost, slotJarId(activeSlot));
+    jarRestored = cookieStatus.restored || 0;
   } else if (shouldClear) {
     cookiesCleared = (await clearSiteCookiesForHost(cleanHost)).cleared || 0;
   }
@@ -443,7 +459,7 @@ async function applySiteProfile(host, profileId, enabled = true, clearCookies = 
   await applyControls();
   await notifyHost(cleanHost);
   await updateActiveBadge();
-  return { ok: true, cookiesCleared, jarSaved, jarRestored, ...(await getState(`https://${cleanHost}/`)) };
+  return { ok: true, cookiesCleared, jarSaved, jarRestored, cookieStatus, ...(await getState(`https://${cleanHost}/`)) };
 }
 
 async function updateSiteModules(host, modules) {
@@ -481,33 +497,64 @@ async function clearSiteCookiesForHost(host) {
   return { ok: true, cleared };
 }
 
-async function saveCookieJar(host, profileId) {
-  if (!host || !profileId) return 0;
+async function clearSiteStorage(host) {
+  const cleanHost = sanitizeHost(host);
+  if (!cleanHost) return { ok: false, error: "No valid host" };
+  const origins = [`https://${cleanHost}`, `http://${cleanHost}`];
   try {
-    const cookies = await chrome.cookies.getAll({ domain: host }).catch(() => []);
+    if (!chrome.browsingData?.remove) return { ok: false, error: "browsingData API unavailable" };
+    await chrome.browsingData.remove(
+      { origins },
+      { cacheStorage: true, cookies: false, fileSystems: true, indexedDB: true, localStorage: true, serviceWorkers: true, webSQL: true }
+    );
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error?.message || "Storage wipe failed" };
+  }
+}
+
+async function saveCookieJar(host, jarId) {
+  const cleanHost = sanitizeHost(host);
+  if (!cleanHost || !jarId) return { ok: false, saved: 0, error: "No valid cookie jar target" };
+  try {
+    const cookies = await chrome.cookies.getAll({ domain: cleanHost }).catch(() => []);
     const jars = await loadJars();
-    jars[`${host}|${profileId}`] = {
+    jars[jarKey(cleanHost, jarId)] = {
       savedAt: Date.now(),
+      jarId,
       cookies: serializeCookieJar(cookies)
     };
     await chrome.storage.local.set({ [COOKIE_JAR_KEY]: jars });
-    return cookies.length;
-  } catch { return 0; }
+    return { ok: true, saved: cookies.length, restored: 0, expired: 0, blocked: 0 };
+  } catch (error) {
+    return { ok: false, saved: 0, restored: 0, expired: 0, blocked: 0, error: error?.message || "Cookie save failed" };
+  }
 }
 
-async function restoreCookieJar(host, profileId) {
-  if (!host || !profileId) return 0;
+async function restoreCookieJar(host, jarId) {
+  const cleanHost = sanitizeHost(host);
+  if (!cleanHost || !jarId) return { ok: false, saved: 0, restored: 0, expired: 0, blocked: 0, error: "No valid cookie jar target" };
   try {
     const jars = await loadJars();
-    const jar = jars[`${host}|${profileId}`];
-    if (!jar?.cookies?.length) return 0;
+    const jar = jars[jarKey(cleanHost, jarId)];
+    if (!jar?.cookies?.length) return { ok: true, saved: 0, restored: 0, expired: 0, blocked: 0 };
     let restored = 0;
+    let expired = 0;
+    let blocked = 0;
+    const now = Date.now();
     for (const c of jar.cookies) {
-      const result = await chrome.cookies.set(deserializeCookieForSet(c, host)).catch(() => null);
+      if (c.expirationDate && c.expirationDate * 1000 <= now) {
+        expired += 1;
+        continue;
+      }
+      const result = await chrome.cookies.set(deserializeCookieForSet(c, cleanHost, now)).catch(() => null);
       if (result) restored += 1;
+      else blocked += 1;
     }
-    return restored;
-  } catch { return 0; }
+    return { ok: true, saved: 0, restored, expired, blocked };
+  } catch (error) {
+    return { ok: false, saved: 0, restored: 0, expired: 0, blocked: 0, error: error?.message || "Cookie restore failed" };
+  }
 }
 
 async function loadJars() {
@@ -518,20 +565,140 @@ async function loadJars() {
 async function getCookieJars() {
   const jars = await loadJars();
   const summary = Object.entries(jars).map(([key, jar]) => {
-    const [host, profileId] = key.split("|");
-    return { host, profileId, cookieCount: jar.cookies?.length || 0, savedAt: jar.savedAt };
+    const [host, rawId] = key.split("|");
+    return {
+      host,
+      profileId: rawId?.startsWith("slot:") ? "" : rawId,
+      slotId: rawId?.startsWith("slot:") ? rawId.replace(/^slot:/, "") : "",
+      jarId: rawId,
+      cookieCount: jar.cookies?.length || 0,
+      savedAt: jar.savedAt
+    };
   });
   return { ok: true, jars: summary };
 }
 
-async function deleteCookieJar(host, profileId) {
+async function getCookieSession(settings, host) {
+  const control = ensureCookieSlotControl(settings, host);
   const jars = await loadJars();
-  const key = `${host}|${profileId}`;
-  if (jars[key]) {
+  const slots = control.slots.map((slot) => {
+    const jar = jars[jarKey(control.scopeHost, slotJarId(slot.id))];
+    return {
+      ...slot,
+      active: slot.id === control.activeSlotId,
+      cookieCount: jar?.cookies?.length || 0,
+      savedAt: jar?.savedAt || 0
+    };
+  });
+  return {
+    scope: control.scope,
+    scopeHost: control.scopeHost,
+    activeSlotId: control.activeSlotId,
+    activeSlotName: slots.find((slot) => slot.id === control.activeSlotId)?.name || DEFAULT_COOKIE_SLOT_NAME,
+    slots,
+    lastStatus: control.lastStatus || null
+  };
+}
+
+async function deleteCookieJar(host, jarId) {
+  const jars = await loadJars();
+  const cleanHost = sanitizeHost(host);
+  const candidates = jarId?.startsWith("slot:")
+    ? [jarKey(cleanHost, jarId)]
+    : [jarKey(cleanHost, jarId), jarKey(cleanHost, slotJarId(jarId))];
+  let changed = false;
+  for (const key of candidates) {
+    if (!jars[key]) continue;
     delete jars[key];
-    await chrome.storage.local.set({ [COOKIE_JAR_KEY]: jars });
+    changed = true;
   }
+  if (changed) await chrome.storage.local.set({ [COOKIE_JAR_KEY]: jars });
   return { ok: true };
+}
+
+async function saveCookieSlot(host, slotId = "") {
+  const settings = await getSettings();
+  const control = ensureCookieSlotControl(settings, host);
+  await setSettings(settings);
+  const id = sanitizeCookieSlotId(slotId) || control.activeSlotId;
+  const status = await saveCookieJar(control.scopeHost, slotJarId(id));
+  await setCookieStatus(control.scopeHost, { ...status, action: "save", slotId: id });
+  return { ok: status.ok, cookieStatus: { ...status, action: "save", slotId: id }, ...(await getState(`https://${sanitizeHost(host)}/`)) };
+}
+
+async function restoreCookieSlot(host, slotId = "") {
+  const settings = await getSettings();
+  const control = ensureCookieSlotControl(settings, host);
+  const id = sanitizeCookieSlotId(slotId) || control.activeSlotId;
+  const clear = await clearSiteCookiesForHost(control.scopeHost);
+  const status = await restoreCookieJar(control.scopeHost, slotJarId(id));
+  const cookieStatus = { ...status, action: "restore", slotId: id, cleared: clear.cleared || 0 };
+  await setCookieStatus(control.scopeHost, cookieStatus);
+  return { ok: status.ok, cookieStatus, ...(await getState(`https://${sanitizeHost(host)}/`)) };
+}
+
+async function switchCookieSlot(host, slotId) {
+  const settings = await getSettings();
+  const control = ensureCookieSlotControl(settings, host);
+  const nextSlot = control.slots.find((slot) => slot.id === sanitizeCookieSlotId(slotId));
+  if (!nextSlot) return { ok: false, error: "Cookie slot not found" };
+  const previousSlotId = control.activeSlotId;
+  const saved = await saveCookieJar(control.scopeHost, slotJarId(previousSlotId));
+  const clear = await clearSiteCookiesForHost(control.scopeHost);
+  const restored = await restoreCookieJar(control.scopeHost, slotJarId(nextSlot.id));
+  control.activeSlotId = nextSlot.id;
+  control.updatedAt = Date.now();
+  settings.cookieSlots[control.scopeHost] = control;
+  await setSettings(settings);
+  const cookieStatus = {
+    ok: saved.ok && restored.ok,
+    action: "switch",
+    slotId: nextSlot.id,
+    previousSlotId,
+    saved: saved.saved || 0,
+    cleared: clear.cleared || 0,
+    restored: restored.restored || 0,
+    expired: restored.expired || 0,
+    blocked: restored.blocked || 0,
+    error: saved.error || restored.error || ""
+  };
+  await setCookieStatus(control.scopeHost, cookieStatus);
+  await notifyHost(control.scopeHost);
+  return { ok: cookieStatus.ok, cookieStatus, ...(await getState(`https://${sanitizeHost(host)}/`)) };
+}
+
+async function cloneCookieSlot(host, name = "") {
+  const settings = await getSettings();
+  const control = ensureCookieSlotControl(settings, host);
+  const id = createCookieSlotId(control);
+  const slot = {
+    id,
+    name: normalizeCookieSlotName(name) || `Alt ${Math.max(1, control.slots.length)}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  control.slots.push(slot);
+  control.activeSlotId = id;
+  control.updatedAt = Date.now();
+  settings.cookieSlots[control.scopeHost] = control;
+  await setSettings(settings);
+  const status = await saveCookieJar(control.scopeHost, slotJarId(id));
+  const cookieStatus = { ...status, action: "clone", slotId: id };
+  await setCookieStatus(control.scopeHost, cookieStatus);
+  return { ok: status.ok, slot, cookieStatus, ...(await getState(`https://${sanitizeHost(host)}/`)) };
+}
+
+async function updateCookieSlotScope(host, scope = "domain") {
+  const cleanHost = sanitizeHost(host);
+  if (!cleanHost) return { ok: false, error: "No valid host" };
+  const nextScope = scope === "host" ? "host" : "domain";
+  const settings = await getSettings();
+  const oldControl = ensureCookieSlotControl(settings, cleanHost);
+  const nextHost = nextScope === "host" ? cleanHost : getBaseDomain(cleanHost);
+  const nextControl = normalizeCookieSlotControl({ ...oldControl, scope: nextScope, scopeHost: nextHost }, nextHost);
+  settings.cookieSlots[nextHost] = nextControl;
+  await setSettings(settings);
+  return { ok: true, ...(await getState(`https://${cleanHost}/`)) };
 }
 
 async function resetSiteProfile(host) {
@@ -540,7 +707,8 @@ async function resetSiteProfile(host) {
   const settings = await getSettings();
   const assignment = settings.siteAssignments[cleanHost];
   if (assignment) {
-    await saveCookieJar(cleanHost, assignment.profileId);
+    const control = ensureCookieSlotControl(settings, cleanHost);
+    await saveCookieJar(cleanHost, slotJarId(control.activeSlotId));
   }
   delete settings.siteAssignments[cleanHost];
   await setSettings(settings);
@@ -549,6 +717,27 @@ async function resetSiteProfile(host) {
   await notifyHost(cleanHost);
   await updateActiveBadge();
   return { ok: true, ...(await getState(`https://${cleanHost}/`)) };
+}
+
+async function wipeSite(host) {
+  const cleanHost = sanitizeHost(host);
+  if (!cleanHost) return { ok: false, error: "No valid host" };
+  const settings = await getSettings();
+  if (isExcluded(cleanHost, settings)) return { ok: false, error: "Host is excluded" };
+  const assignment = settings.siteAssignments[cleanHost];
+  if (assignment) {
+    const control = ensureCookieSlotControl(settings, cleanHost);
+    await saveCookieJar(cleanHost, slotJarId(control.activeSlotId));
+  }
+  delete settings.siteAssignments[cleanHost];
+  await setSettings(settings);
+  const cookies = await clearSiteCookiesForHost(cleanHost);
+  const storage = await clearSiteStorage(cleanHost);
+  await updateDynamicRules();
+  await applyControls();
+  await notifyHost(cleanHost);
+  await updateActiveBadge();
+  return { ok: true, cookiesCleared: cookies.cleared || 0, storageCleared: storage.ok, storageError: storage.error || "", ...(await getState(`https://${cleanHost}/`)) };
 }
 
 async function createProfileFromRequest(message) {
@@ -680,6 +869,7 @@ function normalizeSettings(stored) {
   const settings = { ...DEFAULT_SETTINGS, ...migrated };
   settings.profiles = normalizeProfiles(migrated.profiles);
   settings.siteAssignments = normalizeSiteAssignments(migrated.siteAssignments);
+  settings.cookieSlots = normalizeCookieSlots(migrated.cookieSlots);
   settings.excludedHosts = normalizeHostList(migrated.excludedHosts);
   if (!settings.excludedHostsSeeded) {
     settings.excludedHosts = normalizeHostList([...settings.excludedHosts, ...DEFAULT_EXCLUDED_HOSTS]);
@@ -759,6 +949,9 @@ function migrateSettings(stored) {
         return copy;
       });
     }
+  }
+  if ((next.schemaVersion || 0) < 7) {
+    if (!next.cookieSlots || typeof next.cookieSlots !== "object") next.cookieSlots = {};
   }
   return next;
 }
@@ -867,6 +1060,49 @@ function normalizeSiteAssignments(assignments) {
   return clean;
 }
 
+function normalizeCookieSlots(controls) {
+  if (!controls || typeof controls !== "object") return {};
+  const clean = {};
+  for (const [host, control] of Object.entries(controls)) {
+    const cleanHost = sanitizeHost(host);
+    if (!cleanHost) continue;
+    clean[cleanHost] = normalizeCookieSlotControl(control, cleanHost);
+  }
+  return clean;
+}
+
+function normalizeCookieSlotControl(control, fallbackHost) {
+  const scope = control?.scope === "host" ? "host" : "domain";
+  const scopeHost = sanitizeHost(control?.scopeHost || fallbackHost);
+  const slots = Array.isArray(control?.slots) ? control.slots.map((slot, index) => ({
+    id: sanitizeCookieSlotId(slot?.id) || (index === 0 ? DEFAULT_COOKIE_SLOT_ID : `alt-${index}`),
+    name: normalizeCookieSlotName(slot?.name) || (index === 0 ? DEFAULT_COOKIE_SLOT_NAME : `Alt ${index}`),
+    createdAt: Number(slot?.createdAt || Date.now()),
+    updatedAt: Number(slot?.updatedAt || Date.now())
+  })) : [];
+  if (!slots.some((slot) => slot.id === DEFAULT_COOKIE_SLOT_ID)) {
+    slots.unshift({ id: DEFAULT_COOKIE_SLOT_ID, name: DEFAULT_COOKIE_SLOT_NAME, createdAt: Date.now(), updatedAt: Date.now() });
+  }
+  const deduped = [];
+  const seen = new Set();
+  for (const slot of slots) {
+    if (seen.has(slot.id)) continue;
+    seen.add(slot.id);
+    deduped.push(slot);
+  }
+  const activeSlotId = deduped.some((slot) => slot.id === control?.activeSlotId)
+    ? control.activeSlotId
+    : deduped[0].id;
+  return {
+    scope,
+    scopeHost,
+    activeSlotId,
+    slots: deduped.slice(0, 20),
+    lastStatus: control?.lastStatus && typeof control.lastStatus === "object" ? control.lastStatus : null,
+    updatedAt: Number(control?.updatedAt || Date.now())
+  };
+}
+
 function createRandomProfile({ name = "Profile", code = "PR-00", accent = "#ff006e", defaultCleanup } = {}) {
   const seedHex = randomHex(32);
   const rng = rngFor(seedHex, "fingerprint");
@@ -946,7 +1182,8 @@ async function handleTabClose(tabId) {
   if (policy !== "session") return;
   const remaining = await chrome.tabs.query({ url: [`http://${host}/*`, `https://${host}/*`] }).catch(() => []);
   if (remaining.length > 0) return;
-  await saveCookieJar(host, assignment.profileId);
+  const control = ensureCookieSlotControl(settings, host);
+  await saveCookieJar(control.scopeHost, slotJarId(control.activeSlotId));
   await clearSiteCookiesForHost(host);
 }
 
@@ -1241,6 +1478,64 @@ function deleteAssignmentsForProfile(settings, profileId) {
 
 function getProfile(settings, id) {
   return settings.profiles.find((profile) => profile.id === id) || null;
+}
+
+function ensureCookieSlotControl(settings, host) {
+  const cleanHost = sanitizeHost(host);
+  const domainHost = getBaseDomain(cleanHost);
+  const exact = settings.cookieSlots?.[cleanHost];
+  const domain = settings.cookieSlots?.[domainHost];
+  const scopeHost = exact?.scope === "host" ? cleanHost : domainHost;
+  if (!settings.cookieSlots) settings.cookieSlots = {};
+  const existing = exact?.scope === "host" ? exact : domain;
+  const control = normalizeCookieSlotControl(existing || { scope: "domain", scopeHost }, scopeHost);
+  control.scopeHost = scopeHost;
+  settings.cookieSlots[scopeHost] = control;
+  return control;
+}
+
+async function setCookieStatus(scopeHost, status) {
+  const settings = await getSettings();
+  const control = ensureCookieSlotControl(settings, scopeHost);
+  control.lastStatus = { ...status, at: Date.now() };
+  settings.cookieSlots[control.scopeHost] = control;
+  await setSettings(settings);
+}
+
+function jarKey(host, jarId) {
+  return `${sanitizeHost(host)}|${jarId}`;
+}
+
+function slotJarId(slotId) {
+  return `slot:${sanitizeCookieSlotId(slotId) || DEFAULT_COOKIE_SLOT_ID}`;
+}
+
+function sanitizeCookieSlotId(value) {
+  return String(value || "").trim().toLowerCase()
+    .replace(/^slot:/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+}
+
+function normalizeCookieSlotName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 24);
+}
+
+function createCookieSlotId(control) {
+  const existing = new Set((control.slots || []).map((slot) => slot.id));
+  for (let index = 1; index < 100; index += 1) {
+    const id = `alt-${index}`;
+    if (!existing.has(id)) return id;
+  }
+  return `alt-${randomHex(3)}`;
+}
+
+function getBaseDomain(host) {
+  const cleanHost = sanitizeHost(host);
+  const parts = cleanHost.split(".").filter(Boolean);
+  if (parts.length <= 2) return cleanHost;
+  return parts.slice(-2).join(".");
 }
 
 async function notifyHost(host) {

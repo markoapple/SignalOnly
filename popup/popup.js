@@ -11,6 +11,13 @@ const profileId = document.getElementById("profileId");
 const versionTag = document.getElementById("versionTag");
 const reloadBanner = document.getElementById("reloadBanner");
 const reloadButton = document.getElementById("reloadButton");
+const cookieSlotSelect = document.getElementById("cookieSlotSelect");
+const cookieScopeLabel = document.getElementById("cookieScopeLabel");
+const cookieScopeButton = document.getElementById("cookieScopeButton");
+const saveCookieSlotButton = document.getElementById("saveCookieSlotButton");
+const restoreCookieSlotButton = document.getElementById("restoreCookieSlotButton");
+const cloneCookieSlotButton = document.getElementById("cloneCookieSlotButton");
+const cookieStatus = document.getElementById("cookieStatus");
 const siteToggleButton = document.querySelector(".switch[data-site-toggle='enabled']");
 const siteModuleButtons = [...document.querySelectorAll(".switch[data-site-module]")];
 const globalSettingButtons = [...document.querySelectorAll(".switch[data-global-setting]")];
@@ -84,6 +91,43 @@ profileSelect.addEventListener("change", () => {
   render();
 });
 
+cookieSlotSelect.addEventListener("change", async () => {
+  if (!context.host || !cookieSlotSelect.value) return;
+  const result = await send({ type: "switchCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
+  if (result?.ok) hydrate(result);
+  else cookieStatus.textContent = result?.error || "Cookie slot switch failed";
+});
+
+cookieScopeButton.addEventListener("click", async () => {
+  if (!context.host) return;
+  const nextScope = context.cookieSession?.scope === "host" ? "domain" : "host";
+  const result = await send({ type: "updateCookieSlotScope", host: context.host, scope: nextScope });
+  if (result?.ok) hydrate(result);
+  else cookieStatus.textContent = result?.error || "Cookie scope update failed";
+});
+
+saveCookieSlotButton.addEventListener("click", async () => {
+  if (!context.host) return;
+  const result = await send({ type: "saveCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
+  if (result?.ok) hydrate(result);
+  cookieStatus.textContent = formatCookieStatus(result?.cookieStatus) || result?.error || "Cookie save failed";
+});
+
+restoreCookieSlotButton.addEventListener("click", async () => {
+  if (!context.host) return;
+  const result = await send({ type: "restoreCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
+  if (result?.ok) hydrate(result);
+  cookieStatus.textContent = formatCookieStatus(result?.cookieStatus) || result?.error || "Cookie restore failed";
+});
+
+cloneCookieSlotButton.addEventListener("click", async () => {
+  if (!context.host) return;
+  const name = prompt("Name for the new cookie slot", nextCookieSlotName()) || "";
+  const result = await send({ type: "cloneCookieSlot", host: context.host, name });
+  if (result?.ok) hydrate(result);
+  cookieStatus.textContent = formatCookieStatus(result?.cookieStatus) || result?.error || "Cookie clone failed";
+});
+
 applyButton.addEventListener("click", async () => {
   if (!context.host) return;
   if (context.excluded) {
@@ -122,11 +166,16 @@ applyButton.addEventListener("click", async () => {
 
 resetButton.addEventListener("click", async () => {
   if (!context.host) return;
-  const result = await send({ type: "resetSiteProfile", host: context.host });
+  const ok = confirm(`WIPE ${context.host}?\n\nThis removes the SignalOnly site rule and clears current cookies plus browser storage for this site.`);
+  if (!ok) return;
+  const result = await send({ type: "wipeSite", host: context.host });
   if (result?.ok) {
     pendingSiteEnabled = null;
     pendingSiteModules = null;
     hydrate(result);
+    hostNote.textContent = `Wiped site: ${result.cookiesCleared || 0} cookie${result.cookiesCleared === 1 ? "" : "s"} cleared`;
+  } else {
+    hostNote.textContent = result?.error || "Site wipe failed";
   }
 });
 
@@ -154,6 +203,7 @@ function hydrate(state) {
   selectedProfile = context.currentProfile || settings.profiles[0];
   if (state.version) versionTag.textContent = `v${state.version}`;
   renderProfiles();
+  renderCookieSlots();
   render();
 }
 
@@ -193,8 +243,13 @@ function render() {
   reloadBanner.hidden = !context.reloadRequired;
 
   profileSelect.disabled = !hasSupportedPage;
+  cookieSlotSelect.disabled = !hasSupportedPage;
+  cookieScopeButton.disabled = !hasSupportedPage;
+  saveCookieSlotButton.disabled = !hasSupportedPage;
+  restoreCookieSlotButton.disabled = !hasSupportedPage;
+  cloneCookieSlotButton.disabled = !hasSupportedPage;
   applyButton.disabled = !hasSupportedPage;
-  resetButton.disabled = !hasSupportedPage || !context.assignment;
+  resetButton.disabled = !hasSupportedPage;
 
   proxyState.textContent = settings.enabled && settings.proxyEnabled
     ? `${settings.proxyHost}:${settings.proxyPort}` : "Disabled";
@@ -234,6 +289,41 @@ function render() {
     const key = button.dataset.globalSetting;
     button.setAttribute("aria-pressed", String(Boolean(settings[key])));
   });
+}
+
+function renderCookieSlots() {
+  const session = context.cookieSession;
+  cookieSlotSelect.textContent = "";
+  (session?.slots || [{ id: "main", name: "Main", cookieCount: 0 }]).forEach((slot) => {
+    const option = document.createElement("option");
+    option.value = slot.id;
+    option.textContent = `${slot.name} (${slot.cookieCount || 0})`;
+    cookieSlotSelect.append(option);
+  });
+  cookieSlotSelect.value = session?.activeSlotId || "main";
+  cookieScopeLabel.textContent = session?.scope === "host"
+    ? `Split: ${session.scopeHost}`
+    : `Shared: ${session?.scopeHost || "domain"}`;
+  cookieScopeButton.textContent = session?.scope === "host" ? "Share Domain" : "Split Subdomains";
+  cookieStatus.textContent = formatCookieStatus(session?.lastStatus)
+    || "Cookie slots swap saved cookies. Storage isolation uses profile salts.";
+}
+
+function formatCookieStatus(status) {
+  if (!status) return "";
+  const parts = [];
+  if (status.saved) parts.push(`${status.saved} saved`);
+  if (status.cleared) parts.push(`${status.cleared} cleared`);
+  if (status.restored) parts.push(`${status.restored} restored`);
+  if (status.expired) parts.push(`${status.expired} expired`);
+  if (status.blocked) parts.push(`${status.blocked} blocked`);
+  if (status.error) parts.push(status.error);
+  return parts.length ? parts.join(" / ") : "Cookie jar ready";
+}
+
+function nextCookieSlotName() {
+  const count = context.cookieSession?.slots?.length || 1;
+  return `Alt ${count}`;
 }
 
 async function saveGlobal() {
