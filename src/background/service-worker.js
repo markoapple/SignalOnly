@@ -330,7 +330,8 @@ async function removeExclusion(host) {
   const cleanHost = sanitizeHost(host);
   if (!cleanHost) return { ok: false, error: "No valid host" };
   const settings = await getSettings();
-  settings.excludedHosts = normalizeHostList(settings.excludedHosts || []).filter((entry) => entry !== cleanHost);
+  settings.excludedHosts = normalizeHostList(settings.excludedHosts || [])
+    .filter((entry) => entry !== cleanHost && !cleanHost.endsWith(`.${entry}`));
   settings.excludedHostsSeeded = true;
   await setSettings(settings);
   await applyControls();

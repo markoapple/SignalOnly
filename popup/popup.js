@@ -70,6 +70,15 @@ profileSelect.addEventListener("change", () => {
 applyButton.addEventListener("click", async () => {
   if (!context.host) return;
   if (context.excluded) {
+    const removal = await send({ type: "removeExclusion", host: context.host });
+    if (!removal?.ok) {
+      hostNote.textContent = removal?.error || "Could not remove exclusion";
+      return;
+    }
+    context = removal.context || context;
+    settings = removal.settings || settings;
+  }
+  if (context.excluded) {
     hostNote.textContent = "Excluded: direct route / shields off. Remove the exclusion in Settings.";
     return;
   }
@@ -167,7 +176,7 @@ function render() {
     hostNote.textContent = "Open an http or https page to assign a profile";
   } else if (context.excluded) {
     hostCell.dataset.state = "excluded";
-    hostNote.textContent = "Excluded: direct route / shields off";
+    hostNote.textContent = "Excluded: click Apply to enable SignalOnly here";
   } else if (context.assignment?.enabled) {
     hostCell.dataset.state = "active";
     hostNote.textContent = `Assigned: ${context.currentProfile?.name || ""}`;
@@ -203,7 +212,7 @@ function render() {
   // Site enable toggle.
   const siteEnabledNow = pendingSiteEnabled ?? Boolean(context.assignment?.enabled);
   if (siteToggleButton) {
-    siteToggleButton.disabled = !hasSupportedPage || context.excluded;
+    siteToggleButton.disabled = !hasSupportedPage;
     siteToggleButton.setAttribute("aria-pressed", String(siteEnabledNow));
   }
 
@@ -211,7 +220,7 @@ function render() {
   const moduleSource = pendingSiteModules || context.assignment?.modules || context.effectiveModules || {};
   siteModuleButtons.forEach((button) => {
     const key = button.dataset.siteModule;
-    const unavailable = !hasSupportedPage || context.excluded;
+    const unavailable = !hasSupportedPage;
     button.disabled = unavailable;
     const value = unavailable ? false : Boolean(moduleSource[key]);
     button.setAttribute("aria-pressed", String(value));
