@@ -36,12 +36,22 @@
 html,
 body {
   width: 392px;
-  max-height: 680px;
+  height: 600px;
+  max-height: 600px;
   margin: 0;
   background: var(--base);
   color: var(--ink);
   font-family: "KH Interference", sans-serif;
   overflow: hidden;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.popup::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 button,
@@ -51,10 +61,12 @@ select {
 
 .popup {
   width: 392px;
-  max-height: 680px;
-  padding: 10px;
+  height: 600px;
+  max-height: 600px;
+  padding: 8px;
   background: var(--base);
   overflow: hidden;
+  scrollbar-width: none;
 }
 
 .top {
@@ -62,7 +74,7 @@ select {
   grid-template-columns: 1fr auto;
   gap: 14px;
   align-items: start;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -102,14 +114,14 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
-  margin-top: 8px;
+  margin-top: 6px;
   background: var(--line);
   border: 1px solid var(--line);
 }
 
 .status div {
-  min-height: 43px;
-  padding: 6px 9px;
+  min-height: 38px;
+  padding: 5px 8px;
   background: var(--paper);
 }
 
@@ -154,7 +166,7 @@ select {
 .profile-row {
   display: grid;
   gap: 4px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .profile-row span,
@@ -177,9 +189,9 @@ select {
 
 .cookie-panel {
   display: grid;
-  gap: 6px;
-  margin-top: 8px;
-  padding: 8px;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 6px;
   border: 1px solid var(--line);
   background: var(--paper);
 }
@@ -227,8 +239,8 @@ select {
 .switches {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 5px;
+  margin-top: 6px;
 }
 
 .master-switch {
@@ -243,8 +255,8 @@ select {
   grid-template-columns: minmax(0, 1fr) 74px;
   gap: 6px;
   align-items: center;
-  min-height: 33px;
-  padding: 4px 7px;
+  min-height: 31px;
+  padding: 3px 7px;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--paper);
@@ -311,8 +323,8 @@ select {
 .actions {
   display: grid;
   grid-template-columns: 1fr 76px 74px;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 5px;
+  margin-top: 6px;
 }
 
 .actions button {
