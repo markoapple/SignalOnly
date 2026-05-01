@@ -33,8 +33,8 @@
   --gap-md: 14px;
   --gap-lg: 20px;
   --control-h: 40px;
-  --switch-w: 82px;
-  --switch-h: 32px;
+  --switch-w: 96px;
+  --switch-h: 34px;
   --chip-h: 42px;
   --rule: 1px solid var(--hair);
   --strong-rule: 1px solid var(--line);
@@ -295,7 +295,6 @@ select {
 }
 
 .switch-control i {
-  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   width: var(--switch-w);
@@ -307,6 +306,7 @@ select {
   font-family: "KH Interference", sans-serif;
   font-size: 10px;
   font-weight: 850;
+  overflow: hidden;
 }
 
 .switch-control.small {
@@ -323,32 +323,32 @@ select {
   height: var(--switch-h);
 }
 
-.switch-control i::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: calc(50% - 1px);
-  background: var(--accent);
-  border-right: 1px solid var(--line);
-  transition: transform 120ms ease;
-}
-
 .switch-control b {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.switch-control[aria-pressed="false"] i::before {
-  transform: translateX(calc(100% + 2px));
-  background: #fff;
-  border-right: 0;
+.switch-control b + b {
   border-left: 1px solid var(--line);
 }
 
-.switch-control[aria-pressed="false"] b:first-child,
-.switch-control[aria-pressed="true"] b:last-child {
+.switch-control[aria-pressed="true"] b:first-child,
+.switch-control[aria-pressed="false"] b:last-child {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.switch-control[aria-pressed="true"] b:last-child,
+.switch-control[aria-pressed="false"] b:first-child {
+  background: #fff;
   color: var(--muted);
 }
 

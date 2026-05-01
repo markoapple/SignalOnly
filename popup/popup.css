@@ -245,14 +245,14 @@ select {
 
 .master-switch {
   grid-column: 1 / -1;
-  grid-template-columns: 1fr 74px;
+  grid-template-columns: minmax(0, 1fr) 96px;
   font-size: 13px;
   font-weight: 850;
 }
 
 .switch {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 74px;
+  grid-template-columns: minmax(0, 1fr) 96px;
   gap: 6px;
   align-items: center;
   min-height: 31px;
@@ -272,11 +272,10 @@ select {
 }
 
 .switch i {
-  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  width: 74px;
-  height: 24px;
+  width: 96px;
+  height: 34px;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--soft);
@@ -284,39 +283,35 @@ select {
   font-family: "KH Interference", sans-serif;
   font-size: 9px;
   font-weight: 800;
-}
-
-.switch i::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 36px;
-  background: var(--accent);
-  border-right: 1px solid var(--line);
-  transition: transform 120ms ease;
+  overflow: hidden;
 }
 
 .switch b {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.switch[aria-pressed="false"] i::before {
-  transform: translateX(36px);
-  background: var(--paper);
+.switch b + b {
   border-left: 1px solid var(--line);
-  border-right: 0;
 }
 
+.switch[aria-pressed="true"] b:first-child,
+.switch[aria-pressed="false"] b:last-child {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.switch[aria-pressed="true"] b:last-child,
 .switch[aria-pressed="false"] b:first-child {
-  color: var(--muted);
-}
-
-.switch[aria-pressed="true"] b:last-child {
+  background: var(--paper);
   color: var(--muted);
 }
 
