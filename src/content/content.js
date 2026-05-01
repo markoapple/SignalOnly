@@ -2,6 +2,7 @@ const STYLE_ID = "signalonly-focus-style";
 const ATTR = "data-signalonly-noise";
 const ROOT_ATTR = "data-signalonly-active";
 const INJECT_ATTR = "data-signalonly-fingerprint";
+const EDITABLE_SELECTOR = "input, textarea, select, form, [contenteditable]:not([contenteditable='false']), [role='textbox'], [aria-multiline='true']";
 
 let focusProfile = null;
 let effectiveCleanup = null;
@@ -280,8 +281,13 @@ function tokenFromSelector(sel) {
 }
 function shouldSkip(el) {
   return el === document.body || el === document.documentElement
-    || el.closest("input, textarea, select, form, [contenteditable='true']")
+    || hasEditableSurface(el)
     || el.closest("[data-signalonly-keep]");
+}
+function hasEditableSurface(el) {
+  return el.matches(EDITABLE_SELECTOR)
+    || el.closest(EDITABLE_SELECTOR)
+    || Boolean(el.querySelector(EDITABLE_SELECTOR));
 }
 function isSticky(el) {
   const tag = el.tagName.toLowerCase();
