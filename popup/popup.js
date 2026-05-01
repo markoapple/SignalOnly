@@ -11,16 +11,9 @@ const profileId = document.getElementById("profileId");
 const versionTag = document.getElementById("versionTag");
 const reloadBanner = document.getElementById("reloadBanner");
 const reloadButton = document.getElementById("reloadButton");
-const cookieSlotSelect = document.getElementById("cookieSlotSelect");
 const cookieScopeLabel = document.getElementById("cookieScopeLabel");
-const cookieScopeButton = document.getElementById("cookieScopeButton");
-const saveCookieSlotButton = document.getElementById("saveCookieSlotButton");
-const restoreCookieSlotButton = document.getElementById("restoreCookieSlotButton");
-const cloneCookieSlotButton = document.getElementById("cloneCookieSlotButton");
-const cookieStatus = document.getElementById("cookieStatus");
 const siteToggleButton = document.querySelector(".switch[data-site-toggle='enabled']");
 const siteModuleButtons = [...document.querySelectorAll(".switch[data-site-module]")];
-const globalSettingButtons = [...document.querySelectorAll(".switch[data-global-setting]")];
 
 let settings = {};
 let context = {};
@@ -69,63 +62,9 @@ siteModuleButtons.forEach((button) => {
   });
 });
 
-globalSettingButtons.forEach((button) => {
-  button.addEventListener("click", async () => {
-    const key = button.dataset.globalSetting;
-    const previousValue = settings[key];
-    settings[key] = !settings[key];
-    render();
-    const state = await saveGlobal();
-    if (state?.ok) {
-      hydrate(state);
-    } else {
-      settings[key] = previousValue;
-      render();
-      hostNote.textContent = state?.error || "Global setting save failed";
-    }
-  });
-});
-
 profileSelect.addEventListener("change", () => {
   selectedProfile = settings.profiles.find((p) => p.id === profileSelect.value) || settings.profiles[0];
   render();
-});
-
-cookieSlotSelect.addEventListener("change", async () => {
-  if (!context.host || !cookieSlotSelect.value) return;
-  const result = await send({ type: "switchCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
-  if (result?.ok) hydrate(result);
-  else cookieStatus.textContent = result?.error || "Cookie slot switch failed";
-});
-
-cookieScopeButton.addEventListener("click", async () => {
-  if (!context.host) return;
-  const nextScope = context.cookieSession?.scope === "host" ? "domain" : "host";
-  const result = await send({ type: "updateCookieSlotScope", host: context.host, scope: nextScope });
-  if (result?.ok) hydrate(result);
-  else cookieStatus.textContent = result?.error || "Cookie scope update failed";
-});
-
-saveCookieSlotButton.addEventListener("click", async () => {
-  if (!context.host) return;
-  const result = await send({ type: "saveCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
-  if (result?.ok) hydrate(result);
-  cookieStatus.textContent = formatCookieStatus(result?.cookieStatus) || result?.error || "Cookie save failed";
-});
-
-restoreCookieSlotButton.addEventListener("click", async () => {
-  if (!context.host) return;
-  const result = await send({ type: "restoreCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
-  if (result?.ok) hydrate(result);
-  cookieStatus.textContent = formatCookieStatus(result?.cookieStatus) || result?.error || "Cookie restore failed";
-});
-
-cloneCookieSlotButton.addEventListener("click", async () => {
-  if (!context.host) return;
-  const name = prompt("Name for the new cookie slot", nextCookieSlotName()) || "";
-  const result = await send({ type: "cloneCookieSlot", host: context.host, name });
-  if (result?.ok) hydrate(result);
-  cookieStatus.textContent = formatCookieStatus(result?.cookieStatus) || result?.error || "Cookie clone failed";
 });
 
 applyButton.addEventListener("click", async () => {
@@ -243,11 +182,6 @@ function render() {
   reloadBanner.hidden = !context.reloadRequired;
 
   profileSelect.disabled = !hasSupportedPage;
-  cookieSlotSelect.disabled = !hasSupportedPage;
-  cookieScopeButton.disabled = !hasSupportedPage;
-  saveCookieSlotButton.disabled = !hasSupportedPage;
-  restoreCookieSlotButton.disabled = !hasSupportedPage;
-  cloneCookieSlotButton.disabled = !hasSupportedPage;
   applyButton.disabled = !hasSupportedPage;
   resetButton.disabled = !hasSupportedPage;
 
@@ -284,78 +218,13 @@ function render() {
     button.title = unavailable ? "Unavailable on this page" : "";
   });
 
-  // Global setting buttons.
-  globalSettingButtons.forEach((button) => {
-    const key = button.dataset.globalSetting;
-    button.setAttribute("aria-pressed", String(Boolean(settings[key])));
-  });
 }
 
 function renderCookieSlots() {
   const session = context.cookieSession;
-  cookieSlotSelect.textContent = "";
-  (session?.slots || [{ id: "main", name: "Main", cookieCount: 0 }]).forEach((slot) => {
-    const option = document.createElement("option");
-    option.value = slot.id;
-    option.textContent = `${slot.name} (${slot.cookieCount || 0})`;
-    cookieSlotSelect.append(option);
-  });
-  cookieSlotSelect.value = session?.activeSlotId || "main";
   cookieScopeLabel.textContent = session?.scope === "host"
-    ? `Split: ${session.scopeHost}`
-    : `Shared: ${session?.scopeHost || "domain"}`;
-  cookieScopeButton.textContent = session?.scope === "host" ? "Share Domain" : "Split Subdomains";
-  cookieStatus.textContent = formatCookieStatus(session?.lastStatus)
-    || "Cookie slots swap saved cookies. Storage isolation uses profile salts.";
-}
-
-function formatCookieStatus(status) {
-  if (!status) return "";
-  const parts = [];
-  if (status.saved) parts.push(`${status.saved} saved`);
-  if (status.cleared) parts.push(`${status.cleared} cleared`);
-  if (status.restored) parts.push(`${status.restored} restored`);
-  if (status.expired) parts.push(`${status.expired} expired`);
-  if (status.blocked) parts.push(`${status.blocked} blocked`);
-  if (status.error) parts.push(status.error);
-  return parts.length ? parts.join(" / ") : "Cookie jar ready";
-}
-
-function nextCookieSlotName() {
-  const count = context.cookieSession?.slots?.length || 1;
-  return `Alt ${count}`;
-}
-
-async function saveGlobal() {
-  return await send({
-    type: "saveSettings",
-    settings: {
-      enabled: settings.enabled,
-      proxyEnabled: settings.proxyEnabled,
-      proxyHost: settings.proxyHost,
-      proxyPort: settings.proxyPort,
-      privacyControls: settings.privacyControls,
-      webRtcMode: settings.webRtcMode,
-      fingerprintShield: settings.fingerprintShield,
-      storageShield: settings.storageShield,
-      sensorShield: settings.sensorShield,
-      piiShield: settings.piiShield,
-      behaviorNoise: settings.behaviorNoise,
-      networkHeaders: settings.networkHeaders,
-      spoofUserAgentHeader: settings.spoofUserAgentHeader,
-      thirdPartyIsolation: settings.thirdPartyIsolation,
-      blockTrackingHeaders: settings.blockTrackingHeaders,
-      blockServiceWorkers: settings.blockServiceWorkers,
-      applyShieldsGlobally: settings.applyShieldsGlobally,
-      blockTopics: settings.blockTopics,
-      blockAutofill: settings.blockAutofill,
-      blockReferrers: settings.blockReferrers,
-      autoClearOnSwitch: settings.autoClearOnSwitch,
-      cookieExpiryCapDays: settings.cookieExpiryCapDays,
-      activeProfileId: selectedProfile?.id || settings.activeProfileId,
-      excludedHosts: settings.excludedHosts
-    }
-  });
+    ? "Split Subdomains"
+    : "Shared Domain";
 }
 
 async function send(message) {

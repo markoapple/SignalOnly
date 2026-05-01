@@ -46,21 +46,10 @@
         <select id="profileSelect"></select>
       </label>
 
-      <section class="cookie-panel" aria-label="Cookie slot controls">
-        <div class="cookie-head">
-          <div>
-            <span>Cookie Slot</span>
-            <b id="cookieScopeLabel">Shared domain</b>
-          </div>
-          <button id="cookieScopeButton" type="button">Split Subdomains</button>
-        </div>
-        <select id="cookieSlotSelect"></select>
-        <div class="cookie-actions">
-          <button id="saveCookieSlotButton" type="button">Save Jar</button>
-          <button id="restoreCookieSlotButton" type="button">Restore Jar</button>
-          <button id="cloneCookieSlotButton" type="button">Clone Slot</button>
-        </div>
-        <small id="cookieStatus">Cookies and storage use separate isolation layers.</small>
+      <section class="cookie-panel" aria-label="Cookie slot status">
+        <span>Cookie Slot</span>
+        <b id="cookieScopeLabel">Shared Domain</b>
+        <small>Manage in Settings</small>
       </section>
 
       <section class="switches" aria-label="Site privacy modules">
@@ -81,19 +70,6 @@
         </button>
         <button class="switch" type="button" data-site-module="piiShield" aria-pressed="false">
           <span>PII Shield</span><i><b>ON</b><b>OFF</b></i>
-        </button>
-      </section>
-
-      <section class="switches global-switches" aria-label="Global controls">
-        <p class="section-note">Browser-global (apply everywhere Chrome lets us)</p>
-        <button class="switch" type="button" data-global-setting="enabled" aria-pressed="true">
-          <span>Extension Master</span><i><b>ON</b><b>OFF</b></i>
-        </button>
-        <button class="switch" type="button" data-global-setting="proxyEnabled" aria-pressed="false">
-          <span>SOCKS Proxy</span><i><b>ON</b><b>OFF</b></i>
-        </button>
-        <button class="switch" type="button" data-global-setting="thirdPartyIsolation" aria-pressed="false">
-          <span>3p Cookies (global)</span><i><b>ON</b><b>OFF</b></i>
         </button>
       </section>
 
