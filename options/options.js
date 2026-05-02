@@ -38,6 +38,9 @@ let defaults = {};
 let telemetry = {};
 let selectedProfileId = "";
 let draftSiteModules = null;
+let draftSiteProfileId = "";
+let draftSiteEnabled = null;
+let draftSiteCookiePolicy = null;
 let jars = [];
 
 init();
@@ -86,12 +89,20 @@ siteCleanupButtons.forEach((button) => {
 
 webRtcSelect.addEventListener("change", () => { settings.webRtcMode = webRtcSelect.value; });
 siteEnabled.addEventListener("click", () => {
-  siteEnabled.setAttribute("aria-pressed", String(siteEnabled.getAttribute("aria-pressed") !== "true"));
+  const next = siteEnabled.getAttribute("aria-pressed") !== "true";
+  draftSiteEnabled = next;
+  siteEnabled.setAttribute("aria-pressed", String(next));
 });
-siteProfile.addEventListener("change", () => { selectedProfileId = siteProfile.value; render(); });
+siteProfile.addEventListener("change", () => {
+  draftSiteProfileId = siteProfile.value;
+  selectedProfileId = siteProfile.value;
+  renderProfileList();
+  renderProfileEditor();
+});
+siteCookiePolicy?.addEventListener("change", () => { draftSiteCookiePolicy = siteCookiePolicy.value; });
 siteHost.addEventListener("change", () => {
   siteHost.value = selectedHost();
-  draftSiteModules = null;
+  resetSiteDrafts();
   render();
 });
 
@@ -124,17 +135,17 @@ const buttonActions = {
     const modules = ensureDraftSiteModules();
     const result = await send({
       type: "applySiteProfile", host,
-      profileId: siteProfile.value || selectedProfileId,
-      enabled: siteEnabled.getAttribute("aria-pressed") === "true",
+      profileId: draftSiteProfileId || siteProfile.value || selectedProfileId,
+      enabled: draftSiteEnabled ?? (siteEnabled.getAttribute("aria-pressed") === "true"),
       clearCookies: false,
       modules,
-      cookiePolicy: siteCookiePolicy?.value || ""
+      cookiePolicy: draftSiteCookiePolicy ?? (siteCookiePolicy?.value || "")
     });
     let suffix = "";
     if (result?.jarSaved || result?.jarRestored) suffix = ` (jar saved ${result.jarSaved}, restored ${result.jarRestored})`;
     else if (result?.cookiesCleared > 0) suffix = ` (${result.cookiesCleared} cookies cleared)`;
     setStatus(result?.ok ? `Site profile applied${suffix}` : result?.error || "Site profile failed");
-    if (result?.ok) { draftSiteModules = null; hydrate(result); await refreshJars(); }
+    if (result?.ok) { resetSiteDrafts(); hydrate(result); await refreshJars(); }
   },
 
   async disableSiteButton() {
@@ -142,13 +153,13 @@ const buttonActions = {
     if (!host) return;
     const result = await send({
       type: "applySiteProfile", host,
-      profileId: siteProfile.value || selectedProfileId,
+      profileId: draftSiteProfileId || siteProfile.value || selectedProfileId,
       enabled: false,
       modules: ensureDraftSiteModules(),
-      cookiePolicy: siteCookiePolicy?.value || ""
+      cookiePolicy: draftSiteCookiePolicy ?? (siteCookiePolicy?.value || "")
     });
     setStatus(result?.ok ? "Current site profile disabled" : result?.error || "Disable failed");
-    if (result?.ok) { draftSiteModules = null; hydrate(result); }
+    if (result?.ok) { resetSiteDrafts(); hydrate(result); }
   },
 
   async resetSiteButton() {
@@ -158,7 +169,7 @@ const buttonActions = {
     if (!ok) return;
     const result = await send({ type: "wipeSite", host });
     setStatus(result?.ok ? `Site wiped (${result.cookiesCleared || 0} cookies cleared)` : result?.error || "Wipe failed");
-    if (result?.ok) { draftSiteModules = null; hydrate(result); await refreshJars(); }
+    if (result?.ok) { resetSiteDrafts(); hydrate(result); await refreshJars(); }
   },
 
   async clearSiteCookiesButton() {
@@ -328,7 +339,7 @@ function renderProfileSelect() {
     o.value = p.id; o.textContent = `${p.name} (${p.code})`;
     siteProfile.append(o);
   });
-  siteProfile.value = selectedProfileId;
+  siteProfile.value = draftSiteProfileId || selectedProfileId;
 }
 
 function renderProfileList() {
@@ -387,11 +398,13 @@ function renderSiteEditor() {
   const host = selectedHost();
   const assignment = host ? (settings.siteAssignments || {})[host] : null;
   if (assignment) {
-    siteProfile.value = assignment.profileId || selectedProfileId;
-    siteEnabled.setAttribute("aria-pressed", String(Boolean(assignment.enabled)));
-    if (siteCookiePolicy) siteCookiePolicy.value = assignment.cookiePolicy || "";
-  } else if (siteCookiePolicy) {
-    siteCookiePolicy.value = "";
+    siteProfile.value = draftSiteProfileId || assignment.profileId || selectedProfileId;
+    siteEnabled.setAttribute("aria-pressed", String(draftSiteEnabled ?? Boolean(assignment.enabled)));
+    if (siteCookiePolicy) siteCookiePolicy.value = draftSiteCookiePolicy ?? assignment.cookiePolicy ?? "";
+  } else {
+    siteProfile.value = draftSiteProfileId || selectedProfileId;
+    siteEnabled.setAttribute("aria-pressed", String(draftSiteEnabled ?? true));
+    if (siteCookiePolicy) siteCookiePolicy.value = draftSiteCookiePolicy ?? "";
   }
   const m = ensureDraftSiteModules();
   siteModuleButtons.forEach((b) => b.setAttribute("aria-pressed", String(Boolean(m[b.dataset.siteModule]))));
@@ -426,7 +439,7 @@ function renderSiteTable() {
     row.addEventListener("click", () => {
       siteHost.value = host;
       selectedProfileId = assignment.profileId;
-      draftSiteModules = null;
+      resetSiteDrafts();
       siteEnabled.setAttribute("aria-pressed", String(Boolean(assignment.enabled)));
       render();
     });
@@ -515,6 +528,13 @@ function collectProfile() {
     profile.defaultCleanup[b.dataset.module] = b.getAttribute("aria-pressed") === "true";
   });
   return profile;
+}
+
+function resetSiteDrafts() {
+  draftSiteModules = null;
+  draftSiteProfileId = "";
+  draftSiteEnabled = null;
+  draftSiteCookiePolicy = null;
 }
 
 function ensureDraftSiteModules() {
