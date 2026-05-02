@@ -89,7 +89,11 @@ siteEnabled.addEventListener("click", () => {
   siteEnabled.setAttribute("aria-pressed", String(siteEnabled.getAttribute("aria-pressed") !== "true"));
 });
 siteProfile.addEventListener("change", () => { selectedProfileId = siteProfile.value; render(); });
-siteHost.addEventListener("change", () => { draftSiteModules = null; render(); });
+siteHost.addEventListener("change", () => {
+  siteHost.value = selectedHost();
+  draftSiteModules = null;
+  render();
+});
 
 profileName.addEventListener("input", () => {
   const profile = currentProfile();
@@ -529,7 +533,20 @@ function ensureDraftSiteModules() {
 
 function currentProfile() { return getProfile(selectedProfileId) || settings.profiles?.[0]; }
 function getProfile(id) { return (settings.profiles || []).find((profile) => profile.id === id); }
-function selectedHost() { return siteHost.value.trim() || context.host || ""; }
+function selectedHost() { return sanitizeHostInput(siteHost.value) || context.host || ""; }
+
+function sanitizeHostInput(host) {
+  return String(host || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/[/?#].*$/, "")
+    .replace(/:\d+$/, "")
+    .replace(/\/.*$/, "")
+    .replace(/^www\./, "")
+    .replace(/\.+$/g, "")
+    .replace(/[^a-z0-9.-]/g, "");
+}
 
 function pickGlobalSettings(s) {
   return {

@@ -2,6 +2,7 @@ import {
   DEFAULT_SITE_MODULES,
   deserializeCookieForSet,
   effectiveSiteConfig as computeEffectiveSiteConfig,
+  getBaseDomain,
   getSiteAssignment as findSiteAssignment,
   matchesDomainList,
   normalizeHostList,
@@ -1211,14 +1212,12 @@ async function periodicCookieSweep() {
         if (!cookie.expirationDate) continue;
         const remaining = cookie.expirationDate - now;
         if (remaining > maxAgeSeconds) {
-          const scheme = cookie.secure ? "https" : "http";
-          const domain = cookie.domain.replace(/^\./, "");
-          const url = `${scheme}://${domain}${cookie.path || "/"}`;
-          await chrome.cookies.set({
-            url, name: cookie.name, value: cookie.value, domain: cookie.domain,
-            path: cookie.path, secure: cookie.secure, httpOnly: cookie.httpOnly,
-            sameSite: cookie.sameSite || "unspecified", expirationDate: now + maxAgeSeconds
-          }).catch(() => {});
+          const setArgs = deserializeCookieForSet(
+            { ...cookie, expirationDate: now + maxAgeSeconds },
+            host,
+            Date.now()
+          );
+          await chrome.cookies.set(setArgs).catch(() => {});
         }
       }
     } catch {}
@@ -1534,13 +1533,6 @@ function createCookieSlotId(control) {
     if (!existing.has(id)) return id;
   }
   return `alt-${randomHex(3)}`;
-}
-
-function getBaseDomain(host) {
-  const cleanHost = sanitizeHost(host);
-  const parts = cleanHost.split(".").filter(Boolean);
-  if (parts.length <= 2) return cleanHost;
-  return parts.slice(-2).join(".");
 }
 
 async function notifyHost(host) {

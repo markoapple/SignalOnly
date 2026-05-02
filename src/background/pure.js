@@ -15,13 +15,18 @@ export const DEFAULT_SITE_MODULES = Object.freeze({
   }
 });
 
+const COMMON_SECOND_LEVEL_PUBLIC_SUFFIXES = new Set(["ac", "co", "com", "edu", "gov", "net", "org"]);
+
 export function sanitizeHost(host) {
   return String(host || "")
     .trim()
     .toLowerCase()
     .replace(/^https?:\/\//, "")
+    .replace(/[/?#].*$/, "")
+    .replace(/:\d+$/, "")
     .replace(/\/.*$/, "")
     .replace(/^www\./, "")
+    .replace(/\.+$/g, "")
     .replace(/[^a-z0-9.-]/g, "");
 }
 
@@ -122,6 +127,19 @@ export function getSiteAssignment(settings, host) {
     if (settings.siteAssignments[parent]) return settings.siteAssignments[parent];
   }
   return null;
+}
+
+export function getBaseDomain(host) {
+  const cleanHost = sanitizeHost(host);
+  const parts = cleanHost.split(".").filter(Boolean);
+  if (parts.length <= 2) return cleanHost;
+
+  const [secondLevel, topLevel] = parts.slice(-2);
+  if (topLevel.length === 2 && COMMON_SECOND_LEVEL_PUBLIC_SUFFIXES.has(secondLevel) && parts.length >= 3) {
+    return parts.slice(-3).join(".");
+  }
+
+  return parts.slice(-2).join(".");
 }
 
 export function serializeCookieJar(cookies) {
