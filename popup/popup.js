@@ -31,12 +31,24 @@ let pendingSiteEnabled = null;
 init();
 
 async function init() {
+  simplifyCookiePanel();
   const state = await send({ type: "getState" });
   if (!state?.ok) {
     hostState.textContent = "Extension unavailable";
     return;
   }
   hydrate(state);
+}
+
+function simplifyCookiePanel() {
+  saveCookieSlotButton?.remove();
+  restoreCookieSlotButton?.remove();
+  cookieScopeButton?.remove();
+  if (cloneCookieSlotButton) cloneCookieSlotButton.textContent = "New Alt";
+  const title = document.querySelector(".cookie-panel > span");
+  if (title) title.textContent = "Cookie Identity";
+  const rowLabel = document.querySelector(".slot-select-row > span");
+  if (rowLabel) rowLabel.textContent = "Use";
 }
 
 siteToggleButton?.addEventListener("click", () => {
@@ -143,39 +155,14 @@ cookieSlotSelect?.addEventListener("change", async () => {
   if (!context.host || !cookieSlotSelect.value) return;
   setCookieBusy(true);
   const result = await send({ type: "switchCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
-  applyCookieResult(result, "Cookie slot switched");
-});
-
-saveCookieSlotButton?.addEventListener("click", async () => {
-  if (!context.host) return;
-  setCookieBusy(true);
-  const result = await send({ type: "saveCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
-  applyCookieResult(result, "Cookie slot saved");
-});
-
-restoreCookieSlotButton?.addEventListener("click", async () => {
-  if (!context.host) return;
-  setCookieBusy(true);
-  const result = await send({ type: "restoreCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
-  applyCookieResult(result, "Cookie slot restored");
+  applyCookieResult(result, "Cookie identity switched");
 });
 
 cloneCookieSlotButton?.addEventListener("click", async () => {
   if (!context.host) return;
-  const name = prompt("New cookie slot name", nextSlotName());
-  if (name === null) return;
   setCookieBusy(true);
-  const result = await send({ type: "cloneCookieSlot", host: context.host, name });
-  applyCookieResult(result, "Cookie slot cloned");
-});
-
-cookieScopeButton?.addEventListener("click", async () => {
-  if (!context.host) return;
-  const current = context.cookieSession?.scope || "domain";
-  const next = current === "host" ? "domain" : "host";
-  setCookieBusy(true);
-  const result = await send({ type: "updateCookieSlotScope", host: context.host, scope: next });
-  applyCookieResult(result, `Cookie scope set to ${next === "host" ? "split subdomains" : "shared domain"}`);
+  const result = await send({ type: "cloneCookieSlot", host: context.host, name: nextSlotName() });
+  applyCookieResult(result, "New cookie identity created");
 });
 
 function ensurePendingModules() {
@@ -298,25 +285,23 @@ function renderCookieControls() {
   const hasSupportedPage = Boolean(context.host);
   const session = context.cookieSession;
   const disabled = !hasSupportedPage || context.excluded;
-  cookieScopeLabel.textContent = session?.scope === "host"
-    ? `Split Subdomains / ${session.scopeHost || context.host || "--"}`
-    : `Shared Domain / ${session?.scopeHost || context.host || "--"}`;
+  cookieScopeLabel.textContent = session?.scope === "host" ? "Split Subdomains" : "Shared Domain";
   const activeSlot = session?.slots?.find((slot) => slot.id === session.activeSlotId);
   if (activeSlot) {
     const count = Number(activeSlot.cookieCount || 0);
-    cookieSlotNote.textContent = `${activeSlot.name || activeSlot.id}: ${count} cookie${count === 1 ? "" : "s"}${activeSlot.savedAt ? ` / saved ${new Date(activeSlot.savedAt).toLocaleString()}` : ""}`;
+    cookieSlotNote.textContent = `${activeSlot.name || activeSlot.id}: ${count} cookie${count === 1 ? "" : "s"}. Switching saves current cookies first.`;
   } else if (disabled) {
-    cookieSlotNote.textContent = hasSupportedPage ? "Cookie slots disabled for excluded hosts." : "Open an http or https page to use cookie slots.";
+    cookieSlotNote.textContent = hasSupportedPage ? "Cookie identities disabled for excluded hosts." : "Open an http or https page to use cookie identities.";
   } else {
-    cookieSlotNote.textContent = "No saved slot yet. Save the current site jar to create one.";
+    cookieSlotNote.textContent = "Use Main or create a new alt from the current cookies.";
   }
-  [cookieSlotSelect, saveCookieSlotButton, restoreCookieSlotButton, cloneCookieSlotButton, cookieScopeButton].forEach((el) => {
+  [cookieSlotSelect, cloneCookieSlotButton].forEach((el) => {
     if (el) el.disabled = disabled;
   });
 }
 
 function setCookieBusy(isBusy) {
-  [cookieSlotSelect, saveCookieSlotButton, restoreCookieSlotButton, cloneCookieSlotButton, cookieScopeButton].forEach((el) => {
+  [cookieSlotSelect, cloneCookieSlotButton].forEach((el) => {
     if (el) el.disabled = isBusy || !context.host || context.excluded;
   });
 }
@@ -329,7 +314,7 @@ function applyCookieResult(result, fallbackMessage) {
     cookieSlotNote.textContent = formatCookieStatus(status, fallbackMessage);
   } else {
     renderCookieControls();
-    cookieSlotNote.textContent = result?.error || "Cookie slot action failed";
+    cookieSlotNote.textContent = result?.error || "Cookie identity action failed";
   }
 }
 
