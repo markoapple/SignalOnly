@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SignalOnly icon">
+  <rect width="128" height="128" rx="18" fill="#efeee9"/>
+  <rect x="8" y="8" width="112" height="112" rx="12" fill="#fffefa" stroke="#040404" stroke-width="6"/>
+  <path d="M28 81V47l36-21 36 21v34l-36 21-36-21Z" fill="#ff006e" stroke="#040404" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M42 64h44" stroke="#040404" stroke-width="8" stroke-linecap="square"/>
+  <path d="M64 42v44" stroke="#040404" stroke-width="8" stroke-linecap="square"/>
+  <circle cx="64" cy="64" r="12" fill="#fffefa" stroke="#040404" stroke-width="6"/>
+</svg>
