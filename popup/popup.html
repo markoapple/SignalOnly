@@ -37,7 +37,7 @@
 
       <div id="reloadBanner" class="reload-banner" hidden>
         <b>Reload required</b>
-        <small>Some shield changes need a page reload to fully apply or revert.</small>
+        <small>Fingerprint, storage, and service-worker changes need a page reload to fully apply or revert.</small>
         <button id="reloadButton" type="button">Reload</button>
       </div>
 
@@ -46,10 +46,20 @@
         <select id="profileSelect"></select>
       </label>
 
-      <section class="cookie-panel" aria-label="Cookie slot status">
+      <section class="cookie-panel" aria-label="Cookie slots">
         <span>Cookie Slot</span>
         <b id="cookieScopeLabel">Shared Domain</b>
-        <small>Manage in Settings</small>
+        <label class="slot-select-row">
+          <span>Active Slot</span>
+          <select id="cookieSlotSelect"></select>
+        </label>
+        <div class="cookie-actions">
+          <button id="saveCookieSlotButton" type="button">Save</button>
+          <button id="restoreCookieSlotButton" type="button">Restore</button>
+          <button id="cloneCookieSlotButton" type="button">Clone</button>
+          <button id="cookieScopeButton" type="button">Scope</button>
+        </div>
+        <small id="cookieSlotNote">Save, restore, clone, or switch cookie slots for this site.</small>
       </section>
 
       <section class="switches" aria-label="Site privacy modules">
