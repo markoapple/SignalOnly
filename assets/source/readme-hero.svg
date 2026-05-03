@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-label="SignalOnly README hero">
+  <rect width="1200" height="560" fill="#efeee9"/>
+  <rect x="34" y="34" width="1132" height="492" rx="28" fill="#fffefa" stroke="#040404" stroke-width="8"/>
+  <g font-family="Arial Black, Arial, sans-serif" fill="#040404">
+    <text x="76" y="112" font-size="26" letter-spacing="4">SO / MV3 / LOCAL SIGNAL</text>
+    <text x="72" y="205" font-size="76" letter-spacing="-2">SignalOnly</text>
+    <text x="76" y="260" font-size="28">Per-site identity profiles. Cookie slots. Fingerprint surface control.</text>
+  </g>
+  <g transform="translate(76 318)">
+    <rect width="320" height="116" rx="14" fill="#ff006e" stroke="#040404" stroke-width="6"/>
+    <text x="24" y="46" font-family="Arial Black, Arial, sans-serif" font-size="20" fill="#040404">ACTIVE SITE</text>
+    <text x="24" y="84" font-family="Arial Black, Arial, sans-serif" font-size="30" fill="#040404">example.com</text>
+  </g>
+  <g transform="translate(440 318)">
+    <rect width="276" height="116" rx="14" fill="#0057ff" stroke="#040404" stroke-width="6"/>
+    <text x="24" y="46" font-family="Arial Black, Arial, sans-serif" font-size="20" fill="#040404">COOKIE SLOT</text>
+    <text x="24" y="84" font-family="Arial Black, Arial, sans-serif" font-size="30" fill="#040404">ALT 01</text>
+  </g>
+  <g transform="translate(760 318)">
+    <rect width="320" height="116" rx="14" fill="#00c2d1" stroke="#040404" stroke-width="6"/>
+    <text x="24" y="46" font-family="Arial Black, Arial, sans-serif" font-size="20" fill="#040404">PROFILE</text>
+    <text x="24" y="84" font-family="Arial Black, Arial, sans-serif" font-size="30" fill="#040404">STABLE SURFACE</text>
+  </g>
+  <path d="M904 104h140v140H904z" fill="#ff006e" stroke="#040404" stroke-width="8"/>
+  <path d="M932 174h84M974 132v84" stroke="#040404" stroke-width="12" stroke-linecap="square"/>
+  <circle cx="974" cy="174" r="24" fill="#fffefa" stroke="#040404" stroke-width="8"/>
+</svg>
