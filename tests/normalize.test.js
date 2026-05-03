@@ -12,6 +12,7 @@ import {
   normalizeReloadRequiredIds,
   effectiveSiteConfig,
   getSiteAssignment,
+  getBaseDomain,
   serializeCookieJar,
   deserializeCookieForSet
 } from "../src/background/pure.js";
@@ -19,6 +20,9 @@ import {
 test("sanitizeHost strips scheme/path/www and lowercases", () => {
   assert.equal(sanitizeHost("https://www.Example.com/path?q=1"), "example.com");
   assert.equal(sanitizeHost("  HTTP://Sub.Example.COM/  "), "sub.example.com");
+  assert.equal(sanitizeHost("https://www.Example.com:8443/path?q=1#top"), "example.com");
+  assert.equal(sanitizeHost("example.com:8080?debug=true"), "example.com");
+  assert.equal(sanitizeHost("www.Example.com."), "example.com");
   assert.equal(sanitizeHost(""), "");
   assert.equal(sanitizeHost(null), "");
   assert.equal(sanitizeHost("javascript:alert(1)"), "javascriptalert1");
@@ -108,6 +112,13 @@ test("getSiteAssignment matches exact host then parent suffix", () => {
   assert.equal(getSiteAssignment(settings, "example.com").profileId, "p1");
   assert.equal(getSiteAssignment(settings, ""), null);
   assert.equal(getSiteAssignment(settings, "unrelated.com"), null);
+});
+
+test("getBaseDomain preserves common second-level public suffixes", () => {
+  assert.equal(getBaseDomain("shop.example.com"), "example.com");
+  assert.equal(getBaseDomain("login.example.co.uk"), "example.co.uk");
+  assert.equal(getBaseDomain("cdn.shop.example.com.au"), "example.com.au");
+  assert.equal(getBaseDomain("localhost"), "localhost");
 });
 
 test("effectiveSiteConfig falls back to global defaults when no assignment", () => {
