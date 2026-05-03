@@ -12,6 +12,12 @@ const versionTag = document.getElementById("versionTag");
 const reloadBanner = document.getElementById("reloadBanner");
 const reloadButton = document.getElementById("reloadButton");
 const cookieScopeLabel = document.getElementById("cookieScopeLabel");
+const cookieSlotSelect = document.getElementById("cookieSlotSelect");
+const saveCookieSlotButton = document.getElementById("saveCookieSlotButton");
+const restoreCookieSlotButton = document.getElementById("restoreCookieSlotButton");
+const cloneCookieSlotButton = document.getElementById("cloneCookieSlotButton");
+const cookieScopeButton = document.getElementById("cookieScopeButton");
+const cookieSlotNote = document.getElementById("cookieSlotNote");
 const siteToggleButton = document.querySelector(".switch[data-site-toggle='enabled']");
 const siteModuleButtons = [...document.querySelectorAll(".switch[data-site-module]")];
 
@@ -133,6 +139,45 @@ reloadButton?.addEventListener("click", async () => {
   if (tab?.id) chrome.tabs.reload(tab.id);
 });
 
+cookieSlotSelect?.addEventListener("change", async () => {
+  if (!context.host || !cookieSlotSelect.value) return;
+  setCookieBusy(true);
+  const result = await send({ type: "switchCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
+  applyCookieResult(result, "Cookie slot switched");
+});
+
+saveCookieSlotButton?.addEventListener("click", async () => {
+  if (!context.host) return;
+  setCookieBusy(true);
+  const result = await send({ type: "saveCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
+  applyCookieResult(result, "Cookie slot saved");
+});
+
+restoreCookieSlotButton?.addEventListener("click", async () => {
+  if (!context.host) return;
+  setCookieBusy(true);
+  const result = await send({ type: "restoreCookieSlot", host: context.host, slotId: cookieSlotSelect.value });
+  applyCookieResult(result, "Cookie slot restored");
+});
+
+cloneCookieSlotButton?.addEventListener("click", async () => {
+  if (!context.host) return;
+  const name = prompt("New cookie slot name", nextSlotName());
+  if (name === null) return;
+  setCookieBusy(true);
+  const result = await send({ type: "cloneCookieSlot", host: context.host, name });
+  applyCookieResult(result, "Cookie slot cloned");
+});
+
+cookieScopeButton?.addEventListener("click", async () => {
+  if (!context.host) return;
+  const current = context.cookieSession?.scope || "domain";
+  const next = current === "host" ? "domain" : "host";
+  setCookieBusy(true);
+  const result = await send({ type: "updateCookieSlotScope", host: context.host, scope: next });
+  applyCookieResult(result, `Cookie scope set to ${next === "host" ? "split subdomains" : "shared domain"}`);
+});
+
 function ensurePendingModules() {
   if (!pendingSiteModules) {
     const modules = structuredClone(
@@ -232,13 +277,77 @@ function render() {
     button.title = unavailable ? "Unavailable on this page" : "";
   });
 
+  renderCookieControls();
 }
 
 function renderCookieSlots() {
   const session = context.cookieSession;
+  cookieSlotSelect.textContent = "";
+  const slots = session?.slots?.length ? session.slots : [{ id: "main", name: "Main", active: true, cookieCount: 0 }];
+  slots.forEach((slot) => {
+    const option = document.createElement("option");
+    option.value = slot.id;
+    const count = Number(slot.cookieCount || 0);
+    option.textContent = `${slot.name || slot.id} (${count})`;
+    cookieSlotSelect.append(option);
+  });
+  cookieSlotSelect.value = session?.activeSlotId || slots.find((slot) => slot.active)?.id || "main";
+}
+
+function renderCookieControls() {
+  const hasSupportedPage = Boolean(context.host);
+  const session = context.cookieSession;
+  const disabled = !hasSupportedPage || context.excluded;
   cookieScopeLabel.textContent = session?.scope === "host"
-    ? "Split Subdomains"
-    : "Shared Domain";
+    ? `Split Subdomains / ${session.scopeHost || context.host || "--"}`
+    : `Shared Domain / ${session?.scopeHost || context.host || "--"}`;
+  const activeSlot = session?.slots?.find((slot) => slot.id === session.activeSlotId);
+  if (activeSlot) {
+    const count = Number(activeSlot.cookieCount || 0);
+    cookieSlotNote.textContent = `${activeSlot.name || activeSlot.id}: ${count} cookie${count === 1 ? "" : "s"}${activeSlot.savedAt ? ` / saved ${new Date(activeSlot.savedAt).toLocaleString()}` : ""}`;
+  } else if (disabled) {
+    cookieSlotNote.textContent = hasSupportedPage ? "Cookie slots disabled for excluded hosts." : "Open an http or https page to use cookie slots.";
+  } else {
+    cookieSlotNote.textContent = "No saved slot yet. Save the current site jar to create one.";
+  }
+  [cookieSlotSelect, saveCookieSlotButton, restoreCookieSlotButton, cloneCookieSlotButton, cookieScopeButton].forEach((el) => {
+    if (el) el.disabled = disabled;
+  });
+}
+
+function setCookieBusy(isBusy) {
+  [cookieSlotSelect, saveCookieSlotButton, restoreCookieSlotButton, cloneCookieSlotButton, cookieScopeButton].forEach((el) => {
+    if (el) el.disabled = isBusy || !context.host || context.excluded;
+  });
+}
+
+function applyCookieResult(result, fallbackMessage) {
+  setCookieBusy(false);
+  if (result?.ok) {
+    const status = result.cookieStatus;
+    hydrate(result);
+    cookieSlotNote.textContent = formatCookieStatus(status, fallbackMessage);
+  } else {
+    renderCookieControls();
+    cookieSlotNote.textContent = result?.error || "Cookie slot action failed";
+  }
+}
+
+function formatCookieStatus(status, fallbackMessage) {
+  if (!status) return fallbackMessage;
+  const parts = [];
+  if (status.saved) parts.push(`${status.saved} saved`);
+  if (status.cleared) parts.push(`${status.cleared} cleared`);
+  if (status.restored) parts.push(`${status.restored} restored`);
+  if (status.expired) parts.push(`${status.expired} expired`);
+  if (status.blocked) parts.push(`${status.blocked} blocked`);
+  if (status.error) parts.push(status.error);
+  return parts.length ? parts.join(" / ") : fallbackMessage;
+}
+
+function nextSlotName() {
+  const count = context.cookieSession?.slots?.length || 1;
+  return `Alt ${count}`;
 }
 
 async function send(message) {
