@@ -6,7 +6,7 @@ SignalOnly is a local Chromium extension for alt management, per-site identity p
 
 The main use is simple: keep different site identities separated without constantly switching Chrome profiles, clearing cookies manually, or rebuilding the same setup over and over.
 
-Assign a profile to a site, and SignalOnly gives that site a stable alternate browser surface. The profile carries its own fingerprint values, storage salts, cookie jar, cleanup rules, and routing settings. It does not promise invisibility; it gives each site/profile a local, inspectable browser surface and reversible rules.
+Assign a profile to a site, and SignalOnly gives that site a stable alternate browser surface. The profile carries its own fingerprint values, storage salts, cookie behavior, cleanup rules, and local UI state. SOCKS proxy and browser privacy controls are global Chromium settings, with per-site behavior applied where Chrome exposes host scoping. It does not promise invisibility; it gives each site/profile a local, inspectable browser surface and reversible rules.
 
 This is useful for alt accounts, privacy testing, account separation, and making noisy sites less annoying without breaking every login flow.
 
@@ -16,16 +16,18 @@ SignalOnly runs as a Manifest V3 extension. The background worker handles profil
 
 The shield changes the browser signals that sites usually read when they try to identify you. Instead of leaking the same raw browser state everywhere, each assigned profile gets its own stable surface. The goal is not random noise every reload. The goal is a believable profile that stays consistent.
 
-Cookie handling works per host and profile. When you switch a site from one profile to another, SignalOnly snapshots the previous `{host, profile}` cookie jar, clears current host cookies, then restores the target profile's jar when one exists. That makes alt switching much less annoying because you are not constantly logging in and out by hand.
+Cookie handling works through per-site cookie slots. SignalOnly can save, restore, clone, and switch cookie jars for the current site scope. When you switch profiles or slots, it snapshots the previous jar, clears the current scope, and restores the target jar when one exists. That makes alt switching much less annoying because you are not constantly logging in and out by hand.
 
-Storage is separated with profile salts, so normal page storage does not directly bleed between assigned profiles. The extension also has optional cleanup rules for recommendations, comments, overlays, sticky junk, metrics, and motion-heavy page elements.
+Storage access is namespaced with profile salts, so normal page storage APIs are separated at the JavaScript API layer for assigned profiles. This is not a full Chromium storage partition; existing origin storage can still exist outside the namespace, and changes that happen before the shield loads require a reload to fully settle.
+
+The extension also has optional cleanup rules for recommendations, comments, overlays, sticky junk, metrics, and motion-heavy page elements.
 
 ## What it does
 
  **Fingerprint Spoofing**: Feeds fake but consistent data to scripts checking Canvas, WebGL, AudioContext, DOMRects, Math precision, screen posture, plugins, and hardware concurrency.
- **Cookie Jar Profiles**: Saves and restores per `{host, profile}` cookie jars for alt/profile workflows. Policies can keep cookies, clear on tab close, or clear on profile switch. It also sweeps known tracking cookies and caps first-party cookie lifetimes.
+ **Cookie Slot Profiles**: Saves, restores, clones, and switches per-site cookie jars. Policies can keep cookies, clear on tab close, or clear on profile switch. It also sweeps known tracking cookies and caps first-party cookie lifetimes.
  **UI Cleanup**: Visually removes algorithmic recommendations, vanity metrics, overlays, and sticky headers using safe, non-destructive DOM tagging.
- **Network Routing**: Built-in SOCKS proxy support and WebRTC leak protection.
+ **Network Routing**: Built-in global SOCKS proxy support and WebRTC leak protection.
  **Header Stripping**: Blocks declarative tracking headers (ETag, Last-Modified) on third-party requests.
 
 ## Why this exists
@@ -46,11 +48,11 @@ Then open a normal website, click the SignalOnly icon, and assign a profile to t
 
 ## Usage
 
-Use the popup for quick current-site changes.
+Use the popup for quick current-site changes, profile assignment, module toggles, cookie slot save/restore/switch/clone, and cookie scope switching.
 
 Use the options page for profiles, exclusions, cookie jars, imports, exports, and global settings.
 
-After changing fingerprint or storage behavior, reload the page. A lot of sites read browser APIs early, so reloads matter.
+After changing fingerprint, storage, or service-worker behavior, reload the page. A lot of sites read browser APIs early, so reloads matter.
 
 Use exclusions for sites where you want SignalOnly completely out of the way, especially login providers, payment flows, or anything that acts weird when browser signals change.
 
