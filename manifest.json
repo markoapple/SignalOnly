@@ -46,10 +46,22 @@
         "<all_urls>"
       ],
       "js": [
-        "src/content/content.js"
+        "src/content/content.js",
+        "src/content/auto-rotate.js"
       ],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/injected/auto-rotate-fingerprint.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
     }
   ],
   "declarative_net_request": {
