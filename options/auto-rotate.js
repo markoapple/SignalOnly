@@ -23,14 +23,7 @@ saveGlobalButton?.addEventListener("click", () => {
 });
 
 exportConfigButton?.addEventListener("click", () => {
-  window.setTimeout(() => {
-    if (!configBuffer?.value.trim()) return;
-    try {
-      const exported = JSON.parse(configBuffer.value);
-      exported.autoRotateFingerprint = autoRotateValue;
-      configBuffer.value = JSON.stringify(exported, null, 2);
-    } catch {}
-  }, 0);
+  patchExportBufferSoon();
 });
 
 importConfigButton?.addEventListener("click", () => {
@@ -57,6 +50,22 @@ async function saveAutoRotate(value) {
   autoRotateValue = Boolean(value);
   try {
     await chrome.storage.sync.set({ [SIGNALONLY_AUTO_ROTATE_SYNC_KEY]: autoRotateValue });
+  } catch {}
+}
+
+function patchExportBufferSoon() {
+  for (const delay of [0, 80, 250, 600]) {
+    window.setTimeout(patchExportBuffer, delay);
+  }
+}
+
+function patchExportBuffer() {
+  if (!configBuffer?.value.trim()) return;
+  try {
+    const exported = JSON.parse(configBuffer.value);
+    if (!exported || typeof exported !== "object") return;
+    exported.autoRotateFingerprint = autoRotateValue;
+    configBuffer.value = JSON.stringify(exported, null, 2);
   } catch {}
 }
 
