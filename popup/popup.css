@@ -108,7 +108,7 @@ select {
 
 .status {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   margin-top: 6px;
   background: var(--line);
@@ -227,7 +227,7 @@ select {
 .cookie-actions {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr;
   gap: 4px;
 }
 

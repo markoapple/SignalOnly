@@ -39,7 +39,7 @@
     "48": "assets/icon-48.png",
     "128": "assets/icon-128.png"
   },
-  "options_page": "options/options-v2.html",
+  "options_page": "options/options.html",
   "content_scripts": [
     {
       "matches": [

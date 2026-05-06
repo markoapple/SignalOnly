@@ -75,6 +75,14 @@
           <div class="setting-row dense"><div><b>Apply globally</b><span>Off (recommended) = shields run only on assigned sites.</span></div><button class="switch-control small" type="button" data-setting="applyShieldsGlobally" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button></div>
         </section>
 
+        <section class="module" aria-labelledby="autoRotateHeading">
+          <header class="module-head compact">
+            <div><p class="micro">02B / FINGERPRINT / VOLATILE</p><h2 id="autoRotateHeading">Auto-Rotate</h2></div>
+            <button class="switch-control small" type="button" data-setting="autoRotateFingerprint" aria-pressed="false"><i><b>ON</b><b>OFF</b></i></button>
+          </header>
+          <p class="section-note">Advanced mode. Default profiles stay stable; this uses a fresh page-load seed when fingerprint shielding is active.</p>
+        </section>
+
         <section class="module" aria-labelledby="storageHeading">
           <header class="module-head compact">
             <div><p class="micro">03 / STORAGE / DEFAULT</p><h2 id="storageHeading">Storage</h2></div>
@@ -252,5 +260,6 @@
       </section>
     </main>
     <script src="options.js"></script>
+    <script src="auto-rotate.js"></script>
   </body>
 </html>

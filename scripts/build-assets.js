@@ -10,10 +10,11 @@ const ICON_SOURCE = join(SOURCE_DIR, "icon.svg");
 const HERO_SOURCE = join(SOURCE_DIR, "readme-hero.svg");
 const ICON_SIZES = [16, 32, 48, 128];
 
-const renderer = findRenderer();
-if (!renderer) {
+const sharp = await loadSharp();
+const renderer = sharp ? null : findRenderer();
+if (!sharp && !renderer) {
   throw new Error(
-    "No SVG renderer found. Install one of: sharp CLI, rsvg-convert, magick, or convert. "
+    "No SVG renderer found. Run `npm install` to install sharp, or install one of: rsvg-convert, magick, or convert. "
     + "Then rerun `npm run build:assets`."
   );
 }
@@ -34,16 +35,24 @@ for (const size of ICON_SIZES) console.log(`assets/icon-${size}.png`);
 console.log("assets/icon.svg");
 console.log("assets/readme-hero.svg");
 
+async function loadSharp() {
+  try {
+    const mod = await import("sharp");
+    return mod.default || mod;
+  } catch {
+    return null;
+  }
+}
+
 function findRenderer() {
   const candidates = [
-    { name: "sharp", args: (input, output, width, height) => ["-i", input, "-o", output, "resize", width, height] },
-    { name: "rsvg-convert", args: (input, output, width, height) => ["-w", String(width), "-h", String(height), "-o", output, input] },
-    { name: "magick", args: (input, output, width, height) => [input, "-resize", `${width}x${height}!`, output] },
-    { name: "convert", args: (input, output, width, height) => [input, "-resize", `${width}x${height}!`, output] }
+    { name: "rsvg-convert", versionArgs: ["--version"], args: (input, output, width, height) => ["-w", String(width), "-h", String(height), "-o", output, input] },
+    { name: "magick", versionArgs: ["--version"], args: (input, output, width, height) => [input, "-resize", `${width}x${height}!`, output] },
+    { name: "convert", versionArgs: ["--version"], args: (input, output, width, height) => [input, "-resize", `${width}x${height}!`, output] }
   ];
 
   for (const candidate of candidates) {
-    const result = spawnSync(candidate.name, ["--version"], { encoding: "utf8" });
+    const result = spawnSync(candidate.name, candidate.versionArgs, { encoding: "utf8" });
     if (result.status === 0) return candidate;
   }
   return null;
@@ -51,10 +60,14 @@ function findRenderer() {
 
 async function renderSvg(input, output, width, height) {
   assertSvg(input);
-  const args = renderer.args(input, output, width, height);
-  const result = spawnSync(renderer.name, args, { encoding: "utf8" });
-  if (result.status !== 0) {
-    throw new Error(`${renderer.name} failed for ${input}:\n${result.stderr || result.stdout}`);
+  if (sharp) {
+    await sharp(input).resize(width, height, { fit: "fill" }).png().toFile(output);
+  } else {
+    const args = renderer.args(input, output, width, height);
+    const result = spawnSync(renderer.name, args, { encoding: "utf8" });
+    if (result.status !== 0) {
+      throw new Error(`${renderer.name} failed for ${input}:\n${result.stderr || result.stdout}`);
+    }
   }
   await assertPng(output);
 }
