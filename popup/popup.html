@@ -33,6 +33,10 @@
           <span>WebRTC</span>
           <b id="webrtcState">Default</b>
         </div>
+        <div>
+          <span>Fingerprint Mode</span>
+          <b id="autoRotateState">Stable</b>
+        </div>
       </section>
 
       <div id="reloadBanner" class="reload-banner" hidden>
@@ -46,20 +50,17 @@
         <select id="profileSelect"></select>
       </label>
 
-      <section class="cookie-panel" aria-label="Cookie slots">
-        <span>Cookie Slot</span>
+      <section class="cookie-panel" aria-label="Cookie identities">
+        <span>Cookie Identity</span>
         <b id="cookieScopeLabel">Shared Domain</b>
         <label class="slot-select-row">
-          <span>Active Slot</span>
+          <span>Use</span>
           <select id="cookieSlotSelect"></select>
         </label>
         <div class="cookie-actions">
-          <button id="saveCookieSlotButton" type="button">Save</button>
-          <button id="restoreCookieSlotButton" type="button">Restore</button>
-          <button id="cloneCookieSlotButton" type="button">Clone</button>
-          <button id="cookieScopeButton" type="button">Scope</button>
+          <button id="cloneCookieSlotButton" type="button">New Alt</button>
         </div>
-        <small id="cookieSlotNote">Save, restore, clone, or switch cookie slots for this site.</small>
+        <small id="cookieSlotNote">Switch identities or create a new alt for this site.</small>
       </section>
 
       <section class="switches" aria-label="Site privacy modules">
