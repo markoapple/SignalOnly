@@ -6,16 +6,23 @@ const exportConfigButton = document.getElementById("exportConfigButton");
 const importConfigButton = document.getElementById("importConfigButton");
 const configBuffer = document.getElementById("configBuffer");
 let autoRotateValue = false;
+let syncingAutoRotate = false;
 
 void hydrateAutoRotate();
 
 if (autoRotateButton) {
-  autoRotateButton.addEventListener("click", () => {
-    window.setTimeout(() => {
-      autoRotateValue = autoRotateButton.getAttribute("aria-pressed") === "true";
-      void saveAutoRotate(autoRotateValue);
-    }, 0);
-  });
+  autoRotateButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    autoRotateValue = !autoRotateValue;
+    setAutoRotatePressed(autoRotateValue);
+    void saveAutoRotate(autoRotateValue);
+  }, true);
+
+  new MutationObserver(() => {
+    if (syncingAutoRotate) return;
+    setAutoRotatePressed(autoRotateValue);
+  }).observe(autoRotateButton, { attributes: true, attributeFilter: ["aria-pressed"] });
 }
 
 saveGlobalButton?.addEventListener("click", () => {
@@ -71,5 +78,7 @@ function patchExportBuffer() {
 
 function setAutoRotatePressed(value) {
   if (!autoRotateButton) return;
+  syncingAutoRotate = true;
   autoRotateButton.setAttribute("aria-pressed", String(Boolean(value)));
+  syncingAutoRotate = false;
 }
