@@ -1,0 +1,72 @@
+name: Bodytracker security build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/bodytracker-security-trigger
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Bodytracker remediation branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: markoapple/bodytracker-bt
+          ref: security/encrypted-phone-transport
+          path: bodytracker
+          fetch-depth: 0
+
+      - name: Reconstruct and apply encrypted transport patch
+        shell: bash
+        working-directory: bodytracker
+        run: |
+          set -euo pipefail
+          payload_dir=tools/encrypted-phone-patch
+          combined="$RUNNER_TEMP/apply_encrypted_phone_transport.py.gz.b64"
+          test "$(find "$payload_dir" -maxdepth 1 -name '*.part' | wc -l)" -eq 7
+          cat "$payload_dir"/*.part > "$combined"
+          base64 --decode "$combined" | gzip --decompress > "$RUNNER_TEMP/apply_encrypted_phone_transport.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_encrypted_phone_transport.py"
+          python3 "$RUNNER_TEMP/apply_encrypted_phone_transport.py"
+          rm -rf "$payload_dir" tools/apply_encrypted_phone_transport.py.gz.b64
+
+      - name: Run focused validation
+        shell: bash
+        working-directory: bodytracker
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q qa tests tools
+          python3 tests/security_hardening_contract_test.py
+          python3 tests/static_integration_contract_test.py
+          node --test tests/ui_command_bus_test.mjs
+          node --test tests/phone_camera_server_security_test.mjs
+          cmake --preset source-sanity
+          cmake --build --preset source-sanity --parallel
+          ctest --preset source-sanity --output-on-failure
+
+      - name: Export patched source and evidence
+        shell: bash
+        working-directory: bodytracker
+        run: |
+          set -euo pipefail
+          git status --short > security-build-status.txt
+          git diff --check
+          git diff --binary > encrypted-phone-transport.patch
+          git diff --name-only > encrypted-phone-transport-files.txt
+          rm -rf .git build
+          tar -czf "$RUNNER_TEMP/bodytracker-encrypted-phone-source.tar.gz" .
+
+      - name: Upload verified source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bodytracker-encrypted-phone-source
+          path: ${{ runner.temp }}/bodytracker-encrypted-phone-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
